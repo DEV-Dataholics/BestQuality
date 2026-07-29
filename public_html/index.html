@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portal Ejecutivo BQS</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%230b4f9e%22/><text y=%2268%22 x=%2212%22 font-size=%2250%22 font-weight=%22bold%22 fill=%22white%22 font-family=%22sans-serif%22>BQS</text></svg>">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- HTML2PDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bqs: {
+              DEFAULT: '#0b4f9e',
+              hover: '#08407f',
+              soft: '#eaf2fb'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="h-full font-sans antialiased text-slate-900" x-data="bqsApp" x-init="init()" x-cloak>
+
+  <!-- PANTALLA DE LOGIN -->
+  <template x-if="!isLoggedIn">
+    <div class="flex min-h-screen bg-slate-50">
+      <!-- PANEL IZQUIERDO: Branding & Info -->
+      <div class="hidden lg:flex lg:w-1/2 flex-col justify-between bg-gradient-to-br from-[#0a488f] via-[#0b4f9e] to-[#062c5b] text-white p-16 relative overflow-hidden">
+        <!-- Logo & Title -->
+        <div class="flex items-center gap-3">
+          <span class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 text-white text-base font-bold tracking-wider border border-white/20">BQS</span>
+          <div>
+            <p class="font-bold text-base leading-tight">Portal Ejecutivo BQS</p>
+            <p class="text-xs text-blue-200">by Dataholics</p>
+          </div>
+        </div>
+
+        <!-- Headline & Features -->
+        <div class="max-w-md my-auto space-y-12">
+          <div class="space-y-4">
+            <h2 class="text-4xl font-bold tracking-tight leading-tight">Tu información financiera, consolidada y bajo control.</h2>
+            <p class="text-blue-100 text-base leading-relaxed">El portal de lectura de la Dirección General: del dato disperso a una sola fuente de verdad.</p>
+          </div>
+
+          <div class="space-y-6">
+            <!-- Feature 1 -->
+            <div class="flex gap-4">
+              <span class="p-2.5 h-10 w-10 shrink-0 rounded-xl bg-white/10 flex items-center justify-center border border-white/10 text-white">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" /></svg>
+              </span>
+              <div>
+                <h4 class="font-semibold text-sm">Las tres preguntas, al instante</h4>
+                <p class="text-xs text-blue-100 mt-0.5">Qué se facturó, qué falta por facturar y cuánto te deben — en un solo vistazo.</p>
+              </div>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="flex gap-4">
+              <span class="p-2.5 h-10 w-10 shrink-0 rounded-xl bg-white/10 flex items-center justify-center border border-white/10 text-white">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16v1" /></svg>
+              </span>
+              <div>
+                <h4 class="font-semibold text-sm">Ciclo de cobro completo</h4>
+                <p class="text-xs text-blue-100 mt-0.5">Del devengado a la factura y al pago, con reglas y trazabilidad de extremo a extremo.</p>
+              </div>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="flex gap-4">
+              <span class="p-2.5 h-10 w-10 shrink-0 rounded-xl bg-white/10 flex items-center justify-center border border-white/10 text-white">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+              </span>
+              <div>
+                <h4 class="font-semibold text-sm">Seguridad por diseño</h4>
+                <p class="text-xs text-blue-100 mt-0.5">Whitelist de accesos y perfil de Dirección en estricta solo lectura.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between text-xs text-blue-200">
+          <span class="flex items-center gap-1.5"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg> Dirección en solo lectura</span>
+          <span class="flex items-center gap-1.5"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg> Demo · datos simulados</span>
+        </div>
+      </div>
+
+      <!-- PANEL DERECHO: Formulario de Login -->
+      <div class="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50">
+        <div class="w-full max-w-md bg-white border border-slate-200 rounded-3xl p-10 shadow-sm space-y-8">
+          <div>
+            <h3 class="text-2xl font-bold text-slate-900">Iniciar sesión</h3>
+            <p class="text-sm text-slate-500 mt-1">Ingresa con tu correo authorized para continuar.</p>
+          </div>
+
+          <form class="space-y-6" @submit.prevent="handleLogin()">
+            <div class="space-y-2">
+              <label for="email" class="block text-sm font-semibold text-slate-700">Correo</label>
+              <input id="email" x-model="loginEmail" type="email" required placeholder="admin@bestqualitysolutions.com" class="block w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-slate-900 focus:outline-none focus:border-bqs focus:ring-2 focus:ring-bqs/10 sm:text-sm">
+            </div>
+
+            <div class="space-y-2">
+              <label for="password" class="block text-sm font-semibold text-slate-700">Contraseña</label>
+              <input id="password" type="password" value="password" disabled class="block w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 text-slate-400 font-mono tracking-widest sm:text-sm">
+              <p class="text-xs text-slate-400 mt-1">En el demo la contraseña no se valida.</p>
+            </div>
+
+            <template x-if="loginError">
+              <div class="rounded-xl bg-red-50 border border-red-200 p-4 text-xs text-red-600" x-text="loginError"></div>
+            </template>
+
+            <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-xl bg-bqs hover:bg-bqs-hover py-3 text-sm font-semibold text-white shadow-sm transition duration-150">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+              Iniciar sesión
+            </button>
+          </form>
+
+          <!-- Acceso rápido -->
+          <div class="pt-6 border-t border-slate-100 space-y-3">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Acceso Rápido por Rol</span>
+            <div class="grid grid-cols-1 gap-2">
+              <button @click="loginEmail = 'admin@bestqualitysolutions.com'" class="flex items-center justify-between text-left p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition duration-150">
+                <div>
+                  <span class="text-xs font-bold text-slate-700 block">Admin Dataholics</span>
+                  <span class="text-[11px] text-slate-400 block mt-0.5">Ve todo el sistema</span>
+                </div>
+                <span class="text-xs font-semibold text-slate-400" style="font-family: monospace;">admin@bestqualitysolutions.com</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+
+  <!-- PORTAL PRINCIPAL (SPA) -->
+  <template x-if="isLoggedIn">
+    <div class="flex h-screen overflow-hidden">
+      <!-- SIDEBAR -->
+      <aside class="w-64 bg-white border-r border-slate-200 flex flex-col h-full flex-shrink-0">
+        <div class="h-16 flex items-center gap-3 border-b border-slate-200 px-6">
+          <span class="w-9 h-9 flex items-center justify-center rounded-lg bg-bqs text-white text-sm font-bold tracking-wider">BQS</span>
+          <div>
+            <p class="font-semibold text-sm text-slate-900 leading-tight">Portal Ejecutivo</p>
+            <p class="text-xs text-slate-500">by Dataholics</p>
+          </div>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-6 overflow-y-auto">
+          <!-- Grupo Dirección -->
+          <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">Dirección</p>
+            <div class="space-y-1">
+              <button @click="navigate('resumen')" :class="activePage === 'resumen' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                Resumen
+              </button>
+              <button @click="navigate('porfacturar')" :class="activePage === 'porfacturar' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Por Facturar
+              </button>
+              <button @click="navigate('porcobrar')" :class="activePage === 'porcobrar' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                Por Cobrar
+              </button>
+              <button @click="navigate('reportes')" :class="activePage === 'reportes' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Reportes Ejecutivo
+              </button>
+            </div>
+          </div>
+
+          <!-- Grupo Operación -->
+          <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">Catalogos & Operación</p>
+            <div class="space-y-1">
+              <button @click="navigate('clientes')" :class="activePage === 'clientes' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                Clientes
+              </button>
+              <button @click="navigate('cotizaciones')" :class="activePage === 'cotizaciones' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Cotizaciones
+              </button>
+              <button @click="navigate('devengado')" :class="activePage === 'devengado' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                Devengado (Sorteos)
+              </button>
+              <button @click="navigate('facturas')" :class="activePage === 'facturas' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Facturas
+              </button>
+              <button @click="navigate('pagos')" :class="activePage === 'pagos' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16v1" /></svg>
+                Pagos / Abonos
+              </button>
+            </div>
+          </div>
+
+          <!-- Grupo Administración -->
+          <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">Administración</p>
+            <div class="space-y-1">
+              <button @click="navigate('importar')" :class="activePage === 'importar' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                Importar & Conciliar
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        <div class="p-4 border-t border-slate-200">
+          <button @click="handleLogout()" class="w-full flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-100 transition duration-150">
+            Cerrar Sesión
+          </button>
+        </div>
+      </aside>
+
+      <!-- SECCIÓN PRINCIPAL -->
+      <div class="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden">
+        <!-- TOPBAR -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0">
+          <div>
+            <h1 class="text-lg font-bold text-slate-800" x-text="getPageTitle()"></h1>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-full bg-bqs flex items-center justify-center text-white text-xs font-semibold" x-text="getUserInitials()"></span>
+            <div class="text-left leading-tight hidden sm:block">
+              <p class="text-sm font-semibold text-slate-900" x-text="userRole === 'owner' ? 'Eric (Director General)' : 'Administrador'"></p>
+              <p class="text-xs text-slate-500" x-text="userEmail"></p>
+            </div>
+          </div>
+        </header>
+
+        <!-- CONTENIDO VIVO -->
+        <main class="flex-1 overflow-y-auto p-8">
+          <div class="max-w-6xl mx-auto space-y-6">
+
+            <!-- PAGE: RESUMEN (DASHBOARD) -->
+            <div x-show="activePage === 'resumen'" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- KPI 1 -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 relative overflow-hidden shadow-sm">
+                  <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500"></span>
+                  <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">¿Qué ya se facturó?</p>
+                  <p class="mt-2 text-3xl font-extrabold text-slate-900" x-text="formatCurrency(dashboardData.resumen.facturado_mes)"></p>
+                  <p class="mt-1 text-xs text-slate-500">Total facturado en el mes en curso</p>
+                </div>
+                <!-- KPI 2 -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 relative overflow-hidden shadow-sm cursor-pointer hover:border-amber-300 transition duration-150" @click="navigate('porfacturar')">
+                  <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500"></span>
+                  <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">¿Qué falta por facturar?</p>
+                  <p class="mt-2 text-3xl font-extrabold text-slate-900" x-text="formatCurrency(dashboardData.resumen.falta_facturar)"></p>
+                  <p class="mt-1 text-xs text-slate-500">Servicios devengados pendientes</p>
+                </div>
+                <!-- KPI 3 -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 relative overflow-hidden shadow-sm cursor-pointer hover:border-bqs-hover transition duration-150" @click="navigate('porcobrar')">
+                  <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-bqs"></span>
+                  <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">¿Cuánto dinero te deben?</p>
+                  <p class="mt-2 text-3xl font-extrabold text-slate-900" x-text="formatCurrency(dashboardData.resumen.deuda_total)"></p>
+                  <p class="mt-1 text-xs text-slate-500">Cuentas por cobrar (neto de abonos)</p>
+                </div>
+              </div>
+
+              <!-- NUEVA SECCIÓN: Tarjetas de Saldos Vigentes por Cliente (Ticket 3) -->
+              <div class="space-y-3">
+                <h3 class="font-bold text-slate-800 text-sm">Resumen de Cartera y Saldos por Cliente (Cuentas por Cobrar)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <!-- MXN Balances -->
+                  <template x-for="r in reportData.pesos.filter(x => x.pend_pago > 0)">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3 relative overflow-hidden">
+                      <span class="absolute right-3 top-3 px-2 py-0.5 rounded text-[10px] font-bold bg-bqs-soft text-bqs">MXN</span>
+                      <div>
+                        <strong class="text-sm text-slate-900 block truncate" x-text="r.Cliente"></strong>
+                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Cliente en Pesos</span>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 text-xs border-t pt-2">
+                        <div>
+                          <span class="text-slate-400 block text-[9px] uppercase">Facturado</span>
+                          <span class="font-semibold text-slate-700 font-mono" x-text="formatCurrency(r.facturado)"></span>
+                        </div>
+                        <div>
+                          <span class="text-slate-400 block text-[9px] uppercase">Pendiente</span>
+                          <span class="font-bold text-red-600 font-mono" x-text="formatCurrency(r.pend_pago)"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                  
+                  <!-- USD Balances -->
+                  <template x-for="r in reportData.dolares.filter(x => x.pend_pago > 0)">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3 relative overflow-hidden">
+                      <span class="absolute right-3 top-3 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">USD</span>
+                      <div>
+                        <strong class="text-sm text-slate-900 block truncate" x-text="r.Cliente"></strong>
+                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Cliente en Dólares</span>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 text-xs border-t pt-2">
+                        <div>
+                          <span class="text-slate-400 block text-[9px] uppercase">Facturado</span>
+                          <span class="font-semibold text-slate-700 font-mono" x-text="formatUSD(r.facturado)"></span>
+                        </div>
+                        <div>
+                          <span class="text-slate-400 block text-[9px] uppercase">Pendiente</span>
+                          <span class="font-bold text-red-600 font-mono" x-text="formatUSD(r.pend_pago)"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Tabla de desglose por facturar -->
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+                  <h3 class="font-bold text-slate-800">Desglose de Servicios Pendientes por Cotización</h3>
+                  <p class="text-xs text-slate-500">Monto devengado no facturado</p>
+                </div>
+                <div class="p-6">
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                      <thead>
+                        <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
+                          <th class="pb-3">Cotización</th>
+                          <th class="pb-3">Cliente</th>
+                          <th class="pb-3 text-right">Cantidad Turnos</th>
+                          <th class="pb-3 text-right">Total Pendiente</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100 text-sm">
+                        <template x-for="item in dashboardData.desglose_por_facturar">
+                          <tr>
+                            <td class="py-3 font-mono font-medium text-slate-900" x-text="item.ID_Cotizacion"></td>
+                            <td class="py-3 text-slate-700" x-text="item.Cliente"></td>
+                            <td class="py-3 text-right text-slate-600 font-mono" x-text="item.Capturas"></td>
+                            <td class="py-3 text-right font-bold text-slate-900 font-mono" x-text="formatCurrency(item.Pendiente)"></td>
+                          </tr>
+                        </template>
+                        <template x-if="dashboardData.desglose_por_facturar.length === 0">
+                          <tr>
+                            <td colspan="4" class="py-6 text-center text-slate-400">No hay servicios devengados pendientes.</td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAGE: POR FACTURAR (Con filtros avanzados) -->
+            <div x-show="activePage === 'porfacturar'" class="space-y-6">
+              <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex flex-1 gap-4 w-full">
+                  <input type="text" x-model="filters.porfacturar.search" placeholder="Buscar por Cotización, Cliente..." class="block w-full max-w-md rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900">
+                  <select x-model="filters.porfacturar.cliente" class="block w-48 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
+                    <option value="">Cliente: Todos</option>
+                    <template x-for="c in clientes">
+                      <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial"></option>
+                    </template>
+                  </select>
+                </div>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-slate-200">
+                  <h3 class="font-bold text-slate-800">Servicios Devengados Pendientes de Facturación</h3>
+                  <p class="text-xs text-slate-500">Trabajo realizado por sorteos de inspección</p>
+                </div>
+                <div class="p-6">
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead>
+                        <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
+                          <th class="pb-3">Cotización</th>
+                          <th class="pb-3">Cliente</th>
+                          <th class="pb-3 text-right">Total Pendiente</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="item in getFilteredPorFacturar()">
+                          <tr>
+                            <td class="py-3 font-mono font-medium text-slate-900" x-text="item.ID_Cotizacion"></td>
+                            <td class="py-3 text-slate-700" x-text="item.Cliente"></td>
+                            <td class="py-3 text-right font-bold text-slate-900 font-mono" x-text="formatCurrency(item.Pendiente)"></td>
+                          </tr>
+                        </template>
+                        <template x-if="getFilteredPorFacturar().length === 0">
+                          <tr>
+                            <td colspan="3" class="py-6 text-center text-slate-400">No se encontraron registros pendientes.</td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAGE: POR COBRAR (Con filtros avanzados) -->
+            <div x-show="activePage === 'porcobrar'" class="space-y-6">
+              <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex flex-1 gap-4 w-full">
+                  <input type="text" x-model="filters.porcobrar.search" placeholder="Buscar por Folio, Cliente..." class="block w-full max-w-md rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900">
+                  <select x-model="filters.porcobrar.cliente" class="block w-48 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
+                    <option value="">Cliente: Todos</option>
+                    <template x-for="c in clientes">
+                      <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial"></option>
+                    </template>
+                  </select>
+                </div>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-slate-200">
+                  <h3 class="font-bold text-slate-800">Resumen de Cuentas por Cobrar Activas</h3>
+                  <p class="text-xs text-slate-500">Desglose de saldos pendientes por cliente y factura activa</p>
+                </div>
+                <div class="p-6">
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead>
+                        <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
+                          <th class="pb-3">Folio Factura</th>
+                          <th class="pb-3">Cliente</th>
+                          <th class="pb-3">Emisión</th>
+                          <th class="pb-3 text-right font-bold text-slate-900">Saldo Pendiente</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="cli in getFilteredPorCobrar()">
+                          <tr>
+                            <td class="py-3 font-mono font-medium text-slate-950" x-text="cli.Folio_Factura"></td>
+                            <td class="py-3 text-slate-800 font-medium" x-text="cli.Cliente"></td>
+                            <td class="py-3 text-slate-500 text-xs" x-text="cli.Fecha_Emision"></td>
+                            <td class="py-3 text-right font-bold font-mono" :class="cli.Moneda === 'Dolar americano' ? 'text-amber-700' : 'text-slate-950'" x-text="cli.Moneda === 'Dolar americano' ? formatUSD(cli.Monto_Total) : formatCurrency(cli.Monto_Total)"></td>
+                          </tr>
+                        </template>
+                        <template x-if="getFilteredPorCobrar().length === 0">
+                          <tr>
+                            <td colspan="4" class="py-6 text-center text-slate-400">No se encontraron cuentas activas pendientes de cobro.</td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAGE: CLIENTES -->
+            <div x-show="activePage === 'clientes'" class="space-y-6">
+              <!-- Filtros & Buscar -->
+              <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex flex-1 gap-4 w-full">
+                  <input type="text" x-model="filters.clientes.search" placeholder="Buscar por Nombre, RFC..." class="block w-full max-w-md rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900 focus:outline-none focus:border-bqs focus:ring-2 focus:ring-bqs/10">
+                  <select x-model="filters.clientes.estatus" class="block w-40 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
+                    <option value="">Estatus: Todos</option>
+                    <option value="Activo">Activo</option>
+                    <option value="Inactivo">Inactivo</option>
+                  </select>
+                </div>
+                <button @click="openAddModal('cliente')" class="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-bqs hover:bg-bqs-hover py-2.5 px-5 text-sm font-semibold text-white transition duration-150">
+                  + Agregar Cliente
+                </button>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-6">
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead>
+                        <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
+                          <th class="pb-3">ID Cliente</th>
+                          <th class="pb-3">Nombre Comercial</th>
+                          <th class="pb-3">Nombre Fiscal</th>
+                          <th class="pb-3">RFC</th>
+                          <th class="pb-3">Estatus</th>
+                          <th class="pb-3 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="cli in getFilteredClientes()">
+                          <tr>
+                            <td class="py-3 font-mono text-slate-500" x-text="cli.ID_Cliente"></td>
+                            <td class="py-3 font-medium text-slate-900" x-text="cli.Nombre_Comercial"></td>
+                            <td class="py-3 text-slate-600" x-text="cli.Nombre_Fiscal"></td>
+                            <td class="py-3 font-mono text-slate-600" x-text="cli.RFC"></td>
+                            <td class="py-3">
+                              <span :class="cli.Estatus === 'Activo' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'" class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold leading-5" x-text="cli.Estatus"></span>
+                            </td>
+                            <td class="py-3 text-right space-x-2">
+                              <button @click="openEditModal('cliente', cli)" class="text-bqs hover:text-bqs-hover font-medium">Editar</button>
+                              <button @click="deleteItem('cliente', cli.ID_Cliente)" class="text-red-600 hover:text-red-700 font-medium">Borrar</button>
+                            </td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAGE: COTIZACIONES -->
+            <div x-show="activePage === 'cotizaciones'" class="space-y-6">
+              <!-- Filtros & Buscar -->
+              <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex flex-1 flex-wrap gap-4 w-full">
+                  <input type="text" x-model="filters.cotizaciones.search" placeholder="Buscar por ID, PO..." class="block w-full max-w-xs rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900">
+                  <select x-model="filters.cotizaciones.cliente" class="block w-48 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
+                    <option value="">Cliente: Todos</option>
+                    <template x-for="c in clientes">
+                      <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial"></option>
+                    </template>
+                  </select>
+                  <select x-model="filters.cotizaciones.estatus" class="block w-40 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
+                    <option value="">Estatus: Todos</option>
+                    <option value="Aprobada">Aprobada</option>
+                    <option value="Pendiente PO">Pendiente PO</option>
+                    <option value="Cerrada">Cerrada</option>
+                  </select>
+                </div>
+                <button @click="openAddModal('cotizacion')" class="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-bqs hover:bg-bqs-hover py-2.5 px-5 text-sm font-semibold text-white transition duration-150">
+                  + Nueva Cotización
+                </button>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-6">
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead>
+                        <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
+                          <th class="pb-3">ID Cotización</th>
+                          <th class="pb-3">Cliente</th>
+                          <th class="pb-3">Orden Compra (PO)</th>
+                          <th class="pb-3 text-right">Monto Autorizado</th>
+                          <th class="pb-3 text-right">Piezas</th>
+                          <th class="pb-3">Estatus</th>
+                          <th class="pb-3 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="cot in getFilteredCotizaciones()">
+                          <tr>
+                            <td class="py-3 font-mono font-medium text-slate-900" x-text="cot.ID_Cotizacion"></td>
+                            <td class="py-3 text-slate-700" x-text="cot.Cliente"></td>
+                            <td class="py-3 text-slate-600" x-text="cot.PO_Referencia"></td>
+                            <td class="py-3 text-right font-mono font-semibold" x-text="formatCurrency(cot.Monto_Autorizado)"></td>
+                            <td class="py-3 text-right font-mono" x-text="cot.Piezas_Autorizadas"></td>
+                            <td class="py-3">
+                              <span :class="cot.Estatus === 'Aprobada' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'" class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5" x-text="cot.Estatus"></span>
+                            </td>
+                            <td class="py-3 text-right space-x-2">
+                              <button @click="openEditModal('cotizacion', cot)" class="text-bqs hover:text-bqs-hover font-medium">Editar</button>
+                              <button @click="deleteItem('cotizacion', cot.ID_Cotizacion)" class="text-red-600 hover:text-red-700 font-medium">Borrar</button>
+                            </td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAGE: DEVENGADO -->
+            <div x-show="activePage === 'devengado'" class="space-y-6">
+              <!-- Filtros & Buscar -->
+              <div class="flex flex-col gap-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex flex-col sm:flex-row gap-4 items-center justify-between w-full">
+                  <div class="flex flex-1 flex-wrap gap-4 w-full">
+                    <input type="text" x-model="filters.devengado.search" placeholder="Buscar por ID, Cotización..." class="block w-full max-w-xs rounded-xl border border-slate-200 py-2 px-4 text-sm text-slate-900">
+                    <select x-model="filters.devengado.cliente" class="block w-48 rounded-xl border border-slate-200 py-2 px-4 text-sm text-slate-700">
+                      <option value="">Cliente: Todos</option>
+                      <template x-for="c in clientes">
+                        <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial"></option>
+                      </template>
+                    </select>
+                    <div class="flex items-center gap-2">
+                      <input type="date" x-model="filters.devengado.start" class="rounded-xl border border-slate-200 py-2 px-3 text-xs text-slate-600">
+                      <span class="text-xs text-slate-400">al</span>
+                      <input type="date" x-model="filters.devengado.end" class="rounded-xl border border-slate-200 py-2 px-3 text-xs text-slate-600">
+                    </div>
+                  </div>
+                  <button @click="openAddModal('devengado')" class="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-bqs hover:bg-bqs-hover py-2.5 px-5 text-sm font-semibold text-white transition duration-150">
+                    + Registrar Turno Sorteo
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-6">
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead>
+                        <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
+                          <th class="pb-3">ID Captura</th>
+                          <th class="pb-3">Fecha</th>
+                          <th class="pb-3">Cotización</th>
+                          <th class="pb-3">Cliente</th>
+                          <th class="pb-3 text-right">Horas</th>
+                          <th class="pb-3 text-right">Piezas</th>
+                          <th class="pb-3 text-right">Monto Devengado</th>
+                          <th class="pb-3">Facturación</th>
+                          <th class="pb-3 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="item in getFilteredDevengado()">
+                          <tr>
+                            <td class="py-3 font-mono text-slate-500" x-text="item.ID_Captura"></td>
+                            <td class="py-3 text-slate-600" x-text="item.Fecha"></td>
+                            <td class="py-3 font-mono text-slate-600" x-text="item.ID_Cotizacion"></td>
+                            <td class="py-3 text-slate-800 font-medium" x-text="item.Cliente"></td>
+                            <td class="py-3 text-right font-mono" x-text="item.Horas_Trabajadas"></td>
+                            <td class="py-3 text-right font-mono" x-text="item.Piezas_Sorteadas"></td>
+                            <td class="py-3 text-right font-mono font-bold" x-text="formatCurrency(item.Monto_Devengado)"></td>
+                            <td class="py-3">
+                              <span :class="item.Estatus_Facturacion === 'facturado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'" class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold leading-5" x-text="item.Estatus_Facturacion"></span>
+                            </td>
+                            <td class="py-3 text-right space-x-2">
+                              <button @click="openEditModal('devengado', item)" class="text-bqs hover:text-bqs-hover font-medium">Editar</button>
+                              <button @click="deleteItem('devengado', item.ID_Captura)" class="text-red-600 hover:text-red-700 font-medium">Borrar</button>
+                            </td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAGE: FACTURAS -->
+            <div x-show="activePage === 'facturas'" class="space-y-6">
+              <!-- Filtros & Buscar -->
+              <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex flex-1 flex-wrap gap-4 w-full">
+                  <input type="text" x-model="filters.facturas.search" placeholder="Buscar por Folio, UUID..." class="block w-full max-w-xs rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900">
+                  <select x-model="filters.facturas.cliente" class="block w-48 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
+                    <option value="">Cliente: Todos</option>
+                    <template x-for="c in clientes">
+                      <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial"></option>
+                    </template>
+                  </select>
+                  <select x-model="filters.facturas.estatus" class="block w-40 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
+                    <option value="">Estatus: Todos</option>
+                    <option value="Vigente">Vigente</option>
+                    <option value="Pagada">Pagada</option>
+                    <option value="Vencida">Vencida</option>
+                    <option value="Pago Parcial">Pago Parcial</option>
+                  </select>
+                </div>
+                <button @click="openAddModal('factura')" class="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-bqs hover:bg-bqs-hover py-2.5 px-5 text-sm font-semibold text-white transition duration-150">
+                  + Registrar Factura
+                </button>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-6">
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead>
+                        <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
+                          <th class="pb-3">Folio</th>
+                          <th class="pb-3">Cliente</th>
+                          <th class="pb-3">Emisión</th>
+                          <th class="pb-3 text-right">Total Facturado</th>
+                          <th class="pb-3 text-right">Moneda</th>
+                          <th class="pb-3 text-right">Estatus</th>
+                          <th class="pb-3 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="fac in getFilteredFacturas()">
+                          <tr>
+                            <td class="py-3 font-mono font-medium text-slate-900" x-text="fac.Folio_Factura"></td>
+                            <td class="py-3 text-slate-700 font-medium" x-text="fac.Cliente"></td>
+                            <td class="py-3 text-slate-500" x-text="fac.Fecha_Emision"></td>
+                            <td class="py-3 text-right font-mono font-semibold" x-text="fac.Moneda === 'Dolar americano' ? formatUSD(fac.Monto_Total) : formatCurrency(fac.Monto_Total)"></td>
+                            <td class="py-3 text-right text-xs text-slate-500" x-text="fac.Moneda"></td>
+                            <td class="py-3 text-right">
+                              <span :class="{
+                                'bg-emerald-50 text-emerald-700': fac.Estatus_Pago === 'Pagada',
+                                'bg-blue-50 text-bqs': fac.Estatus_Pago === 'Vigente',
+                                'bg-red-50 text-red-700': fac.Estatus_Pago === 'Vencida',
+                                'bg-amber-50 text-amber-700': fac.Estatus_Pago === 'Pago Parcial'
+                              }" class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5" x-text="fac.Estatus_Pago"></span>
+                            </td>
+                            <td class="py-3 text-right space-x-2">
+                              <button @click="viewFacturaDetail(fac.Folio_Factura)" class="text-bqs hover:text-bqs-hover font-medium">Ver detalle</button>
+                              <button @click="openEditModal('factura', fac)" class="text-slate-500 hover:text-slate-700 font-medium">Editar</button>
+                              <button @click="deleteItem('factura', fac.Folio_Factura)" class="text-red-600 hover:text-red-700 font-medium">Borrar</button>
+                            </td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAGE: PAGOS -->
+            <div x-show="activePage === 'pagos'" class="space-y-6">
+              <!-- Filtros & Buscar -->
+              <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex flex-1 gap-4 w-full">
+                  <input type="text" x-model="filters.pagos.search" placeholder="Buscar por ID, Referencia..." class="block w-full max-w-md rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900">
+                  <input type="text" x-model="filters.pagos.factura" placeholder="Filtrar por Folio..." class="block w-40 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900">
+                </div>
+                <button @click="openAddModal('pago')" class="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-bqs hover:bg-bqs-hover py-2.5 px-5 text-sm font-semibold text-white transition duration-150">
+                  + Registrar Pago
+                </button>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-6">
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead>
+                        <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
+                          <th class="pb-3">ID Pago</th>
+                          <th class="pb-3">Factura</th>
+                          <th class="pb-3">Cliente</th>
+                          <th class="pb-3">Fecha</th>
+                          <th class="pb-3 text-right">Monto Pagado</th>
+                          <th class="pb-3">Referencia</th>
+                          <th class="pb-3 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="pago in pagosData.filter(p => (!filters.pagos.search || p.ID_Pago.toLowerCase().includes(filters.pagos.search.toLowerCase()) || (p.Referencia && p.Referencia.toLowerCase().includes(filters.pagos.search.toLowerCase()))) && (!filters.pagos.factura || p.Folio_Factura.toLowerCase().includes(filters.pagos.factura.toLowerCase())))">
+                          <tr>
+                            <td class="py-3 font-mono text-slate-500" x-text="pago.ID_Pago"></td>
+                            <td class="py-3 font-mono font-medium text-slate-950" x-text="pago.Folio_Factura"></td>
+                            <td class="py-3 text-slate-700" x-text="pago.Cliente"></td>
+                            <td class="py-3 text-slate-500" x-text="pago.Fecha_Pago"></td>
+                            <td class="py-3 text-right font-mono font-bold text-emerald-600" x-text="formatCurrency(pago.Monto_Pagado)"></td>
+                            <td class="py-3 text-slate-600 text-xs" x-text="pago.Referencia"></td>
+                            <td class="py-3 text-right space-x-2">
+                              <button @click="openEditModal('pago', pago)" class="text-bqs hover:text-bqs-hover font-medium">Editar</button>
+                              <button @click="deleteItem('pago', pago.ID_Pago)" class="text-red-600 hover:text-red-700 font-medium">Borrar</button>
+                            </td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAGE: REPORTES (CUSTOM SPLIT LAYOUT) -->
+            <div x-show="activePage === 'reportes'" class="space-y-6">
+              <!-- KPI Summary Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- MXN Totals -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                  <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-bqs"></span>
+                  <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">RESUMEN PESOS (MXN)</h4>
+                  <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+                    <div class="p-2 bg-slate-50 rounded-lg">
+                      <span class="text-[10px] text-slate-400 block uppercase">Facturado</span>
+                      <strong class="text-xs text-slate-800 font-mono" x-text="formatCurrency(reportData.totales.pesos_facturado)"></strong>
+                    </div>
+                    <div class="p-2 bg-emerald-50 rounded-lg">
+                      <span class="text-[10px] text-emerald-600 block uppercase">Pagado</span>
+                      <strong class="text-xs text-emerald-700 font-mono" x-text="formatCurrency(reportData.totales.pesos_pagado)"></strong>
+                    </div>
+                    <div class="p-2 bg-amber-50 rounded-lg">
+                      <span class="text-[10px] text-amber-600 block uppercase">Pendiente</span>
+                      <strong class="text-xs text-amber-700 font-mono" x-text="formatCurrency(reportData.totales.pesos_pendiente)"></strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- USD Totals -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                  <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#d4af37]"></span>
+                  <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">RESUMEN DOLARES (USD)</h4>
+                  <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+                    <div class="p-2 bg-slate-50 rounded-lg">
+                      <span class="text-[10px] text-slate-400 block uppercase">Facturado</span>
+                      <strong class="text-xs text-slate-800 font-mono" x-text="formatUSD(reportData.totales.dolares_facturado)"></strong>
+                    </div>
+                    <div class="p-2 bg-emerald-50 rounded-lg">
+                      <span class="text-[10px] text-emerald-600 block uppercase">Pagado</span>
+                      <strong class="text-xs text-emerald-700 font-mono" x-text="formatUSD(reportData.totales.dolares_pagado)"></strong>
+                    </div>
+                    <div class="p-2 bg-amber-50 rounded-lg">
+                      <span class="text-[10px] text-amber-600 block uppercase">Pendiente</span>
+                      <strong class="text-xs text-amber-700 font-mono" x-text="formatUSD(reportData.totales.dolares_pendiente)"></strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Export bar -->
+              <div class="flex justify-end gap-3 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <button @click="exportReportToCSV()" class="flex items-center gap-2 rounded-xl bg-slate-600 hover:bg-slate-700 py-2.5 px-5 text-sm font-semibold text-white transition duration-150">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Exportar a CSV
+                </button>
+                <button @click="exportReportToPDF()" class="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 px-5 text-sm font-semibold text-white transition duration-150">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                  Exportar a PDF
+                </button>
+              </div>
+
+              <!-- Two Column split tables (Weights MXN on Left, USD on Right) -->
+              <div id="reporte-ejecutivo-content" class="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                
+                <!-- Pesos Table -->
+                <div class="space-y-4">
+                  <h3 class="font-bold text-slate-800 border-b pb-2 flex justify-between">
+                    <span>CLIENTE PESOS</span>
+                    <span class="text-xs text-slate-400 font-normal">MXN</span>
+                  </h3>
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-xs">
+                      <thead>
+                        <tr class="text-left font-bold text-slate-500 bg-slate-50">
+                          <th class="p-2 border">CLIENTE</th>
+                          <th class="p-2 border text-right">FACTURADO (MXN)</th>
+                          <th class="p-2 border text-right">PAGADO (MXN)</th>
+                          <th class="p-2 border text-right font-bold text-slate-900">PEND PAGO (MXN)</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="r in reportData.pesos">
+                          <tr class="hover:bg-slate-50/50">
+                            <td class="p-2 border text-slate-800" x-text="r.Cliente"></td>
+                            <td class="p-2 border text-right font-mono" x-text="r.facturado > 0 ? formatCurrency(r.facturado) : '$ - '"></td>
+                            <td class="p-2 border text-right font-mono text-emerald-600" x-text="r.pagado > 0 ? formatCurrency(r.pagado) : '$ - '"></td>
+                            <td class="p-2 border text-right font-mono font-bold text-slate-900" x-text="r.pend_pago > 0 ? formatCurrency(r.pend_pago) : '$ - '"></td>
+                          </tr>
+                        </template>
+                        <!-- Totals Row -->
+                        <tr class="bg-amber-50 font-bold">
+                          <td class="p-2 border">TOTAL PESOS</td>
+                          <td class="p-2 border text-right font-mono" x-text="formatCurrency(reportData.totales.pesos_facturado)"></td>
+                          <td class="p-2 border text-right font-mono" x-text="formatCurrency(reportData.totales.pesos_pagado)"></td>
+                          <td class="p-2 border text-right font-mono font-extrabold text-slate-900" x-text="formatCurrency(reportData.totales.pesos_pendiente)"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- USD Table -->
+                <div class="space-y-4">
+                  <h3 class="font-bold text-slate-800 border-b pb-2 flex justify-between">
+                    <span>CLIENTE DOLARES</span>
+                    <span class="text-xs text-slate-400 font-normal">USD</span>
+                  </h3>
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-xs">
+                      <thead>
+                        <tr class="text-left font-bold text-slate-500 bg-slate-50">
+                          <th class="p-2 border">CLIENTE</th>
+                          <th class="p-2 border text-right">FACTURADO (USD)</th>
+                          <th class="p-2 border text-right">PAGADO (USD)</th>
+                          <th class="p-2 border text-right font-bold text-slate-900">PEND PAGO (USD)</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="r in reportData.dolares">
+                          <tr class="hover:bg-slate-50/50">
+                            <td class="p-2 border text-slate-800" x-text="r.Cliente"></td>
+                            <td class="p-2 border text-right font-mono" x-text="r.facturado > 0 ? formatUSD(r.facturado) : '$ - '"></td>
+                            <td class="p-2 border text-right font-mono text-emerald-600" x-text="r.pagado > 0 ? formatUSD(r.pagado) : '$ - '"></td>
+                            <td class="p-2 border text-right font-mono font-bold text-slate-900" x-text="r.pend_pago > 0 ? formatUSD(r.pend_pago) : '$ - '"></td>
+                          </tr>
+                        </template>
+                        <!-- Totals Row -->
+                        <tr class="bg-amber-50 font-bold">
+                          <td class="p-2 border">TOTAL EN DLLS</td>
+                          <td class="p-2 border text-right font-mono" x-text="formatUSD(reportData.totales.dolares_facturado)"></td>
+                          <td class="p-2 border text-right font-mono" x-text="formatUSD(reportData.totales.dolares_pagado)"></td>
+                          <td class="p-2 border text-right font-mono font-extrabold text-slate-900" x-text="formatUSD(reportData.totales.dolares_pendiente)"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- DETALLE FACTURA -->
+            <div x-show="activePage === 'factura_detalle'" class="space-y-6">
+              <div class="flex items-center gap-2 mb-4">
+                <button @click="navigate('facturas')" class="text-sm font-medium text-slate-500 hover:text-slate-700 flex items-center gap-1">
+                  &larr; Volver a Facturas
+                </button>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
+                <div class="flex justify-between items-start border-b border-slate-200 pb-4">
+                  <div>
+                    <h3 class="text-lg font-bold text-slate-900" x-text="selectedFactura.Folio_Factura"></h3>
+                    <p class="text-xs text-slate-500" x-text="'UUID: ' + selectedFactura.cfdiUUID"></p>
+                  </div>
+                  <span :class="{
+                    'bg-emerald-50 text-emerald-700': selectedFactura.Estatus_Pago === 'Pagada',
+                    'bg-blue-50 text-bqs': selectedFactura.Estatus_Pago === 'Vigente',
+                    'bg-red-50 text-red-700': selectedFactura.Estatus_Pago === 'Vencida',
+                    'bg-amber-50 text-amber-700': selectedFactura.Estatus_Pago === 'Pago Parcial'
+                  }" class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" x-text="selectedFactura.Estatus_Pago"></span>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                  <div>
+                    <span class="text-slate-400 block text-xs">Fecha Emisión</span>
+                    <strong class="text-slate-800" x-text="selectedFactura.Fecha_Emision"></strong>
+                  </div>
+                  <div>
+                    <span class="text-slate-400 block text-xs">Fecha Vencimiento</span>
+                    <strong class="text-slate-800 font-mono" x-text="selectedFactura.Fecha_Vencimiento"></strong>
+                  </div>
+                  <div>
+                    <span class="text-slate-400 block text-xs">Subtotal</span>
+                    <strong class="text-slate-800 font-mono" x-text="selectedFactura.Moneda === 'Dolar americano' ? formatUSD(selectedFactura.Monto_Subtotal) : formatCurrency(selectedFactura.Monto_Subtotal)"></strong>
+                  </div>
+                  <div>
+                    <span class="text-slate-400 block text-xs">Total Facturado</span>
+                    <strong class="text-slate-900 font-mono font-bold" x-text="selectedFactura.Moneda === 'Dolar americano' ? formatUSD(selectedFactura.Monto_Total) : formatCurrency(selectedFactura.Monto_Total)"></strong>
+                  </div>
+                </div>
+
+                <!-- Historial de Pagos -->
+                <div class="border-t border-slate-200 pt-6">
+                  <h4 class="font-bold text-slate-800 text-sm mb-3">Historial de Pagos / Abonos Aplicados</h4>
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-xs font-mono">
+                      <thead>
+                        <tr class="text-slate-400 uppercase text-left tracking-wider font-semibold">
+                          <th class="pb-2">ID Pago</th>
+                          <th class="pb-2">Fecha</th>
+                          <th class="pb-2">Referencia</th>
+                          <th class="pb-2 text-right">Monto Pagado</th>
+                          <th class="pb-2 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="pago in selectedFacturaPagos">
+                          <tr>
+                            <td class="py-2 text-slate-600" x-text="pago.ID_Pago"></td>
+                            <td class="py-2 text-slate-600" x-text="pago.Fecha_Pago"></td>
+                            <td class="py-2 text-slate-500 font-sans" x-text="pago.Referencia"></td>
+                            <td class="py-2 text-right font-bold text-emerald-600" x-text="selectedFactura.Moneda === 'Dolar americano' ? formatUSD(pago.Monto_Pagado) : formatCurrency(pago.Monto_Pagado)"></td>
+                            <td class="py-2 text-right">
+                              <button @click="deleteItem('pago', pago.ID_Pago)" class="text-red-600 hover:text-red-700 font-sans font-medium text-xs">Borrar</button>
+                            </td>
+                          </tr>
+                        </template>
+                        <template x-if="selectedFacturaPagos.length === 0">
+                          <tr>
+                            <td colspan="5" class="py-4 text-center text-slate-400 font-sans">No se han registrado abonos para esta factura.</td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAGE: IMPORTAR & CONCILIAR -->
+            <div x-show="activePage === 'importar'" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tarjeta 1: CSV de SATO -->
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
+                  <div class="flex items-center gap-3">
+                    <span class="p-2.5 rounded-xl bg-bqs/10 text-bqs"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></span>
+                    <div>
+                      <h4 class="font-bold text-slate-900">1. Catálogo de Facturación (SATO CSV)</h4>
+                      <p class="text-xs text-slate-500">Carga el CSV mensual para actualizar la base de datos de facturas</p>
+                    </div>
+                  </div>
+                  
+                  <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-bqs/50 transition cursor-pointer relative">
+                    <input type="file" @change="uploadCSV($event)" class="absolute inset-0 opacity-0 cursor-pointer" accept=".csv" />
+                    <p class="text-sm font-semibold text-slate-700">Haz clic aquí para seleccionar o arrastra el archivo .csv</p>
+                    <p class="text-xs text-slate-400 mt-1">Formato: SATO CSV exportado por Elvia</p>
+                  </div>
+                  
+                  <div x-show="csvStatus" class="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600" x-text="csvStatus"></div>
+                </div>
+
+                <!-- Tarjeta 2: XML de Pago -->
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
+                  <div class="flex items-center gap-3">
+                    <span class="p-2.5 rounded-xl bg-emerald-100 text-emerald-600"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg></span>
+                    <div>
+                      <h4 class="font-bold text-slate-900">2. Complementos de Pago (SAT XML)</h4>
+                      <p class="text-xs text-slate-500">Concilia saldos e inyecta abonos a facturas mediante CFDI de pagos</p>
+                    </div>
+                  </div>
+
+                  <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-emerald-300 transition cursor-pointer relative">
+                    <input type="file" @change="uploadXML($event)" class="absolute inset-0 opacity-0 cursor-pointer" accept=".xml" />
+                    <p class="text-sm font-semibold text-slate-700">Haz clic aquí para seleccionar o arrastra el archivo .xml</p>
+                    <p class="text-xs text-slate-400 mt-1">Formato: CFDI 4.0 XML de pagos emitido a clientes</p>
+                  </div>
+                  
+                  <div x-show="xmlStatus" class="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600" x-text="xmlStatus"></div>
+                </div>
+              </div>
+
+              <!-- Bitácora de Auditoría de Conciliación -->
+              <div x-show="reconciliationLogs.length > 0" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 bg-red-50/50">
+                  <h3 class="font-bold text-red-800 text-sm">Bitácora de Conciliación (Alertas detectadas)</h3>
+                </div>
+                <div class="p-6">
+                  <ul class="space-y-2 font-mono text-xs text-red-600">
+                    <template x-for="log in reconciliationLogs">
+                      <li class="bg-red-50 border-l-4 border-red-500 p-2" x-text="log"></li>
+                    </template>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </main>
+      </div>
+    </div>
+  </template>
+
+
+  <!-- ========================================================================= -->
+  <!-- MODALS CRUD -->
+  <!-- ========================================================================= -->
+
+  <!-- MODAL: CLIENTE -->
+  <div x-show="showModal === 'cliente'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 border border-slate-200 shadow-xl space-y-6">
+      <h3 class="text-xl font-bold text-slate-900" x-text="isEdit ? 'Editar Cliente' : 'Agregar Cliente'"></h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">ID Cliente</label>
+          <input type="text" x-model="clientForm.ID_Cliente" :disabled="isEdit" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none focus:border-bqs" placeholder="CLI-001">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Nombre Comercial</label>
+          <input type="text" x-model="clientForm.Nombre_Comercial" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none focus:border-bqs">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Nombre Fiscal</label>
+          <input type="text" x-model="clientForm.Nombre_Fiscal" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none focus:border-bqs">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">RFC</label>
+          <input type="text" x-model="clientForm.RFC" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none focus:border-bqs">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Estatus</label>
+          <select x-model="clientForm.Estatus" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none focus:border-bqs">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      <template x-if="crudError">
+        <div class="rounded-xl bg-red-50 border border-red-200 p-4 text-xs text-red-600" x-text="crudError"></div>
+      </template>
+
+      <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <button @click="showModal = null" class="rounded-xl border border-slate-200 py-2 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
+        <button @click="saveItem('cliente')" class="rounded-xl bg-bqs hover:bg-bqs-hover py-2 px-5 text-sm font-semibold text-white">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: COTIZACION -->
+  <div x-show="showModal === 'cotizacion'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 border border-slate-200 shadow-xl space-y-6">
+      <h3 class="text-xl font-bold text-slate-900" x-text="isEdit ? 'Editar Cotización' : 'Nueva Cotización'"></h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">ID Cotización</label>
+          <input type="text" x-model="cotizacionForm.ID_Cotizacion" :disabled="isEdit" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none" placeholder="COT-0001">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Cliente</label>
+          <select x-model="cotizacionForm.ID_Cliente" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+            <option value="">Selecciona Cliente...</option>
+            <template x-for="c in clientes">
+              <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial"></option>
+            </template>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Referencia de Orden de Compra (PO)</label>
+          <input type="text" x-model="cotizacionForm.PO_Referencia" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Monto Autorizado</label>
+          <input type="number" step="0.01" x-model="cotizacionForm.Monto_Autorizado" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Piezas Autorizadas</label>
+          <input type="number" x-model="cotizacionForm.Piezas_Autorizadas" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Estatus</label>
+          <select x-model="cotizacionForm.Estatus" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+            <option value="Pendiente PO">Pendiente PO</option>
+            <option value="Aprobada">Aprobada</option>
+            <option value="Cerrada">Cerrada</option>
+          </select>
+        </div>
+      </div>
+
+      <template x-if="crudError">
+        <div class="rounded-xl bg-red-50 border border-red-200 p-4 text-xs text-red-600" x-text="crudError"></div>
+      </template>
+
+      <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <button @click="showModal = null" class="rounded-xl border border-slate-200 py-2 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
+        <button @click="saveItem('cotizacion')" class="rounded-xl bg-bqs hover:bg-bqs-hover py-2 px-5 text-sm font-semibold text-white">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DEVENGADO -->
+  <div x-show="showModal === 'devengado'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 border border-slate-200 shadow-xl space-y-6">
+      <h3 class="text-xl font-bold text-slate-900" x-text="isEdit ? 'Editar Turno' : 'Registrar Turno'"></h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">ID Captura</label>
+          <input type="text" x-model="devengadoForm.ID_Captura" :disabled="isEdit" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none" placeholder="BIT-0001">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Fecha</label>
+          <input type="date" x-model="devengadoForm.Fecha" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Cotización Vinculada</label>
+          <select x-model="devengadoForm.ID_Cotizacion" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+            <option value="">Selecciona Cotización...</option>
+            <template x-for="c in cotizaciones">
+              <option :value="c.ID_Cotizacion" x-text="c.ID_Cotizacion + ' (' + c.Cliente + ')'"></option>
+            </template>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Horas Trabajadas</label>
+          <input type="number" step="0.1" x-model="devengadoForm.Horas_Trabajadas" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Piezas Sorteadas</label>
+          <input type="number" x-model="devengadoForm.Piezas_Sorteadas" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Monto Devengado</label>
+          <input type="number" step="0.01" x-model="devengadoForm.Monto_Devengado" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Estatus Facturación</label>
+          <select x-model="devengadoForm.Estatus_Facturacion" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+            <option value="pendiente">Pendiente</option>
+            <option value="facturado">Facturado</option>
+          </select>
+        </div>
+      </div>
+
+      <template x-if="crudError">
+        <div class="rounded-xl bg-red-50 border border-red-200 p-4 text-xs text-red-600" x-text="crudError"></div>
+      </template>
+
+      <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <button @click="showModal = null" class="rounded-xl border border-slate-200 py-2 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
+        <button @click="saveItem('devengado')" class="rounded-xl bg-bqs hover:bg-bqs-hover py-2 px-5 text-sm font-semibold text-white">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FACTURA -->
+  <div x-show="showModal === 'factura'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 border border-slate-200 shadow-xl space-y-6">
+      <h3 class="text-xl font-bold text-slate-900" x-text="isEdit ? 'Editar Factura' : 'Registrar Factura'"></h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Folio de Factura</label>
+          <input type="text" x-model="facturaForm.Folio_Factura" :disabled="isEdit" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none" placeholder="F-6082">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">UUID CFDI (SAT)</label>
+          <input type="text" x-model="facturaForm.cfdiUUID" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Cliente</label>
+          <select x-model="facturaForm.ID_Cliente" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+            <option value="">Selecciona Cliente...</option>
+            <template x-for="c in clientes">
+              <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial"></option>
+            </template>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Fecha Emisión</label>
+          <input type="date" x-model="facturaForm.Fecha_Emision" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Monto Subtotal</label>
+          <input type="number" step="0.01" x-model="facturaForm.Monto_Subtotal" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Monto Total</label>
+          <input type="number" step="0.01" x-model="facturaForm.Monto_Total" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Moneda</label>
+          <select x-model="facturaForm.Moneda" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+            <option value="Peso Mexicano">Peso Mexicano</option>
+            <option value="Dolar americano">Dolar americano</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Fecha Vencimiento</label>
+          <input type="date" x-model="facturaForm.Fecha_Vencimiento" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Estatus de Pago</label>
+          <select x-model="facturaForm.Estatus_Pago" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+            <option value="Vigente">Vigente</option>
+            <option value="Pagada">Pagada</option>
+            <option value="Vencida">Vencida</option>
+            <option value="Pago Parcial">Pago Parcial</option>
+          </select>
+        </div>
+      </div>
+
+      <template x-if="crudError">
+        <div class="rounded-xl bg-red-50 border border-red-200 p-4 text-xs text-red-600" x-text="crudError"></div>
+      </template>
+
+      <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <button @click="showModal = null" class="rounded-xl border border-slate-200 py-2 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
+        <button @click="saveItem('factura')" class="rounded-xl bg-bqs hover:bg-bqs-hover py-2 px-5 text-sm font-semibold text-white">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PAGO / ABONO -->
+  <div x-show="showModal === 'pago'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 border border-slate-200 shadow-xl space-y-6">
+      <h3 class="text-xl font-bold text-slate-900" x-text="isEdit ? 'Editar Pago' : 'Registrar Pago / Abono'"></h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">ID Pago</label>
+          <input type="text" x-model="pagoForm.ID_Pago" :disabled="isEdit" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none" placeholder="PAG-0001">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Factura Relacionada</label>
+          <select x-model="pagoForm.Folio_Factura" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+            <option value="">Selecciona Factura...</option>
+            <template x-for="f in facturasData">
+              <option :value="f.Folio_Factura" x-text="f.Folio_Factura + ' (' + f.Cliente + ')'"></option>
+            </template>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Fecha Pago</label>
+          <input type="date" x-model="pagoForm.Fecha_Pago" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Monto Pagado</label>
+          <input type="number" step="0.01" x-model="pagoForm.Monto_Pagado" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Referencia / Observaciones</label>
+          <input type="text" x-model="pagoForm.Referencia" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
+        </div>
+      </div>
+
+      <template x-if="crudError">
+        <div class="rounded-xl bg-red-50 border border-red-200 p-4 text-xs text-red-600" x-text="crudError"></div>
+      </template>
+
+      <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <button @click="showModal = null" class="rounded-xl border border-slate-200 py-2 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
+        <button @click="saveItem('pago')" class="rounded-xl bg-bqs hover:bg-bqs-hover py-2 px-5 text-sm font-semibold text-white">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LÓGICA ALPINE.JS -->
+  <script src="app.js?v=202607281016"></script>
+</body>
+</html>
