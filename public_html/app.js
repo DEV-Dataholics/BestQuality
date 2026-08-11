@@ -7,6 +7,30 @@ document.addEventListener('alpine:init', () => {
         loginError: '',
         activePage: 'resumen',
 
+        // Sidebar Collapse
+        isSidebarCollapsed: false,
+
+        // Super Captura Wizard State
+        superCapturaStep: 1,
+        superCapturaForm: {
+            ID_Cliente: '',
+            Nombre_Fiscal: '',
+            Nombre_Comercial: '',
+            RFC: '',
+            ID_Cotizacion: '',
+            PO_Referencia: '',
+            Monto_Autorizado: 0,
+            Piezas_Autorizadas: 0,
+            ID_Captura: '',
+            Fecha: new Date().toISOString().split('T')[0],
+            Horas_Trabajadas: 0,
+            Piezas_Sorteadas: 0,
+            Monto_Devengado: 0
+        },
+
+        // Pareto Toggle
+        paretoView: false,
+
         // Data arrays
         dashboardData: {
             resumen: { facturado_mes: 0.00, falta_facturar: 0.00, deudor_total: 0.00 },
@@ -18,6 +42,16 @@ document.addEventListener('alpine:init', () => {
         facturasData: [],
         pagosData: [],
         reportData: { pesos: [], dolares: [], totales: {} },
+
+        // Charts data
+        historicoFacturacion: [],
+        desgloseClienteUltimoMes: [],
+        selectedClientForChart: '',
+        chartHistorico: null,
+        chartClienteMes: null,
+
+        // Auditoria
+        migracionAuditData: [],
 
         // Detalle Factura
         selectedFactura: {},
@@ -35,7 +69,7 @@ document.addEventListener('alpine:init', () => {
         crudError: '',
 
         clientForm: { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo' },
-        cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente PO' },
+        cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '' },
         devengadoForm: { ID_Captura: '', Fecha: '', ID_Cotizacion: '', Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0, Estatus_Facturacion: 'Pendiente' },
         facturaForm: { Folio_Factura: '', cfdiUUID: '', ID_Cliente: '', Fecha_Emision: '', Monto_Subtotal: 0, Monto_Total: 0, Moneda: 'Peso Mexicano', Fecha_Vencimiento: '', Estatus_Pago: 'Vigente' },
         pagoForm: { ID_Pago: '', Folio_Factura: '', Fecha_Pago: '', Monto_Pagado: 0, Referencia: '' },
@@ -60,6 +94,10 @@ document.addEventListener('alpine:init', () => {
                 this.userRole = savedRole;
                 this.loadAllData();
             }
+        },
+
+        toggleSidebar() {
+            this.isSidebarCollapsed = !this.isSidebarCollapsed;
         },
 
         handleLogin() {
@@ -105,6 +143,11 @@ document.addEventListener('alpine:init', () => {
         navigate(page) {
             this.activePage = page;
             this.loadAllData();
+            if (page === 'resumen') {
+                this.$nextTick(() => {
+                    this.initCharts();
+                });
+            }
         },
 
         loadAllData() {
@@ -118,7 +161,13 @@ document.addEventListener('alpine:init', () => {
             // 2. Cargar Clientes
             fetch('/api/clientes')
                 .then(res => res.json())
-                .then(data => { this.clientes = data; });
+                .then(data => { 
+                    this.clientes = data; 
+                    if (data.length > 0 && !this.selectedClientForChart) {
+                        this.selectedClientForChart = data[0].ID_Cliente;
+                        this.updateClientChart();
+                    }
+                });
 
             // 3. Cargar Cotizaciones
             fetch('/api/cotizaciones')
@@ -144,6 +193,83 @@ document.addEventListener('alpine:init', () => {
             fetch('/api/reportes/resumen')
                 .then(res => res.json())
                 .then(data => { this.reportData = data; });
+
+            // 8. Cargar Facturacion Historica
+            fetch('/api/reportes/historico')
+                .then(res => res.json())
+                .then(data => {
+                    this.historicoFacturacion = data;
+                    if (this.chartHistorico) {
+                        this.chartHistorico.data.labels = data.map(d => d.mes);
+                        this.chartHistorico.data.datasets[0].data = data.map(d => parseFloat(d.total));
+                        this.chartHistorico.update();
+                    }
+                });
+
+            // 9. Cargar Auditoria Pre-Migracion
+            fetch('/api/migracion/audit')
+                .then(res => res.json())
+                .then(data => { this.migracionAuditData = data; });
+        },
+
+        updateClientChart() {
+            if (!this.selectedClientForChart) return;
+            fetch(`/api/reportes/cliente-mes/${this.selectedClientForChart}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.desgloseClienteUltimoMes = data;
+                    if (this.chartClienteMes) {
+                        this.chartClienteMes.data.labels = data.map(d => d.fecha);
+                        this.chartClienteMes.data.datasets[0].data = data.map(d => parseFloat(d.Monto_Total));
+                        this.chartClienteMes.update();
+                    }
+                });
+        },
+
+        initCharts() {
+            if (typeof Chart === 'undefined') return;
+
+            const ctxHistorico = document.getElementById('chart-historico');
+            if (ctxHistorico && !this.chartHistorico) {
+                this.chartHistorico = new Chart(ctxHistorico, {
+                    type: 'line',
+                    data: {
+                        labels: this.historicoFacturacion.map(d => d.mes),
+                        datasets: [{
+                            label: 'Facturación Global Histórica',
+                            data: this.historicoFacturacion.map(d => parseFloat(d.total)),
+                            borderColor: '#0b4f9e',
+                            backgroundColor: 'rgba(11, 79, 158, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            const ctxCliente = document.getElementById('chart-cliente-mes');
+            if (ctxCliente && !this.chartClienteMes) {
+                this.chartClienteMes = new Chart(ctxCliente, {
+                    type: 'bar',
+                    data: {
+                        labels: this.desgloseClienteUltimoMes.map(d => d.fecha),
+                        datasets: [{
+                            label: 'Facturación por Cliente (Últimos 30 días)',
+                            data: this.desgloseClienteUltimoMes.map(d => parseFloat(d.Monto_Total)),
+                            backgroundColor: '#10b981',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
         },
 
         viewFacturaDetail(folio) {
@@ -157,6 +283,111 @@ document.addEventListener('alpine:init', () => {
         },
 
         // ------------------------------------------------------------------------
+        // WIZARD SUPER CAPTURA
+        // ------------------------------------------------------------------------
+        superCapturaNextStep() {
+            if (this.superCapturaStep === 1) {
+                // validation
+                if (!this.superCapturaForm.ID_Cliente) {
+                    alert('Debes seleccionar o crear un cliente.');
+                    return;
+                }
+                this.superCapturaStep = 2;
+            } else if (this.superCapturaStep === 2) {
+                if (!this.superCapturaForm.ID_Cotizacion) {
+                    alert('Debes seleccionar o crear una cotización.');
+                    return;
+                }
+                // Pre-fill Devengado form values if empty
+                if (!this.superCapturaForm.ID_Captura) {
+                    this.superCapturaForm.ID_Captura = 'BIT-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+                }
+                this.superCapturaStep = 3;
+            } else if (this.superCapturaStep === 3) {
+                if (this.superCapturaForm.Monto_Devengado <= 0) {
+                    alert('El monto devengado debe ser mayor a cero.');
+                    return;
+                }
+                this.superCapturaStep = 4;
+            }
+        },
+
+        superCapturaPrevStep() {
+            if (this.superCapturaStep > 1) {
+                this.superCapturaStep--;
+            }
+        },
+
+        superCapturaCreateCliente() {
+            if (!this.superCapturaForm.ID_Cliente || !this.superCapturaForm.Nombre_Fiscal) {
+                alert('ID y Nombre Fiscal son obligatorios.');
+                return;
+            }
+            const form = new FormData();
+            form.append('ID_Cliente', this.superCapturaForm.ID_Cliente);
+            form.append('Nombre_Fiscal', this.superCapturaForm.Nombre_Fiscal);
+            form.append('Nombre_Comercial', this.superCapturaForm.Nombre_Comercial || this.superCapturaForm.Nombre_Fiscal);
+            form.append('RFC', this.superCapturaForm.RFC || 'XAXX010101000');
+            form.append('Estatus', 'Activo');
+
+            fetch('/api/clientes', { method: 'POST', body: form })
+            .then(res => res.json())
+            .then(() => {
+                this.loadAllData();
+                alert('Cliente creado y seleccionado.');
+                this.superCapturaStep = 2;
+            });
+        },
+
+        superCapturaCreateCotizacion() {
+            if (!this.superCapturaForm.ID_Cotizacion || this.superCapturaForm.Monto_Autorizado <= 0) {
+                alert('ID de Cotización y Monto Autorizado son obligatorios.');
+                return;
+            }
+            const form = new FormData();
+            form.append('ID_Cotizacion', this.superCapturaForm.ID_Cotizacion);
+            form.append('ID_Cliente', this.superCapturaForm.ID_Cliente);
+            form.append('PO_Referencia', this.superCapturaForm.PO_Referencia || '');
+            form.append('Monto_Autorizado', this.superCapturaForm.Monto_Autorizado);
+            form.append('Piezas_Autorizadas', this.superCapturaForm.Piezas_Autorizadas || 0);
+            form.append('Estatus', 'Aprobada');
+
+            fetch('/api/cotizaciones', { method: 'POST', body: form })
+            .then(res => res.json())
+            .then(() => {
+                this.loadAllData();
+                alert('Cotización creada y seleccionada.');
+                this.superCapturaStep = 3;
+            });
+        },
+
+        superCapturaFinalize() {
+            const form = new FormData();
+            form.append('ID_Captura', this.superCapturaForm.ID_Captura);
+            form.append('Fecha', this.superCapturaForm.Fecha);
+            form.append('ID_Cotizacion', this.superCapturaForm.ID_Cotizacion);
+            form.append('Horas_Trabajadas', this.superCapturaForm.Horas_Trabajadas);
+            form.append('Piezas_Sorteadas', this.superCapturaForm.Piezas_Sorteadas);
+            form.append('Monto_Devengado', this.superCapturaForm.Monto_Devengado);
+            form.append('Estatus_Facturacion', 'Pendiente');
+
+            fetch('/api/devengado', { method: 'POST', body: form })
+            .then(res => res.json())
+            .then(() => {
+                this.loadAllData();
+                alert('¡Super Captura completada con éxito!');
+                // Reset form
+                this.superCapturaForm = {
+                    ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '',
+                    ID_Cotizacion: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0,
+                    ID_Captura: '', Fecha: new Date().toISOString().split('T')[0], Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0
+                };
+                this.superCapturaStep = 1;
+                this.navigate('resumen');
+            });
+        },
+
+        // ------------------------------------------------------------------------
         // CRUD ACTIONS
         // ------------------------------------------------------------------------
         openAddModal(type) {
@@ -167,7 +398,7 @@ document.addEventListener('alpine:init', () => {
             if (type === 'cliente') {
                 this.clientForm = { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo' };
             } else if (type === 'cotizacion') {
-                this.cotizacionForm = { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente PO' };
+                this.cotizacionForm = { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '' };
             } else if (type === 'devengado') {
                 this.devengadoForm = { ID_Captura: '', Fecha: new Date().toISOString().split('T')[0], ID_Cotizacion: '', Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0, Estatus_Facturacion: 'Pendiente' };
             } else if (type === 'factura') {
@@ -330,6 +561,32 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
+        uploadQuoteEvidencia(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('foto', file);
+
+            fetch('/api/cotizaciones/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.message || 'Error de subida'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                this.cotizacionForm.Evidencia = data.path;
+                alert('Foto de evidencia cargada exitosamente.');
+            })
+            .catch(err => {
+                alert('Error al subir imagen: ' + err.message);
+            });
+        },
+
         // ------------------------------------------------------------------------
         // EXPORT
         // ------------------------------------------------------------------------
@@ -396,7 +653,9 @@ document.addEventListener('alpine:init', () => {
                 facturas: 'Control de Facturas',
                 factura_detalle: 'Detalle de Cobros de Factura',
                 importar: 'Carga de Archivos e Importación',
-                reportes: 'Reportes de Cobranza'
+                reportes: 'Reportes de Cobranza',
+                super_captura: 'Modo Super Captura Wizard',
+                migracion: 'Auditoría Pre-Migración ("Facturas en el Aire")'
             }[this.activePage] || 'Portal BQS';
         },
 
@@ -421,6 +680,35 @@ document.addEventListener('alpine:init', () => {
             }).format(value) + ' USD';
         },
 
+        getParetoData() {
+            // Filter out fully paid invoices, group and sum overdue/vigente debt per client
+            const debtByClient = {};
+            this.facturasData.filter(f => f.Estatus_Pago !== 'Pagada').forEach(f => {
+                const cli = f.Cliente;
+                const amt = parseFloat(f.Monto_Total);
+                debtByClient[cli] = (debtByClient[cli] || 0) + amt;
+            });
+
+            // Map and sort descending
+            const sortedDebt = Object.keys(debtByClient).map(cli => ({
+                cliente: cli,
+                deuda: debtByClient[cli]
+            })).sort((a, b) => b.deuda - a.deuda);
+
+            const totalDebt = sortedDebt.reduce((sum, item) => sum + item.deuda, 0);
+
+            // Compute cumulative percentage
+            let acc = 0;
+            return sortedDebt.map(item => {
+                acc += item.deuda;
+                const pct = (acc / totalDebt) * 100;
+                return {
+                    ...item,
+                    acumulado_pct: pct.toFixed(1)
+                };
+            });
+        },
+
         // ------------------------------------------------------------------------
         // FILTERED LIST GETTERS
         // ------------------------------------------------------------------------
@@ -429,6 +717,7 @@ document.addEventListener('alpine:init', () => {
                 const matchSearch = !this.filters.clientes.search || 
                     c.Nombre_Comercial.toLowerCase().includes(this.filters.clientes.search.toLowerCase()) ||
                     c.Nombre_Fiscal.toLowerCase().includes(this.filters.clientes.search.toLowerCase()) ||
+                    c.ID_Cliente.toLowerCase().includes(this.filters.clientes.search.toLowerCase()) ||
                     c.RFC.toLowerCase().includes(this.filters.clientes.search.toLowerCase());
                 const matchEstatus = !this.filters.clientes.estatus || c.Estatus === this.filters.clientes.estatus;
                 return matchSearch && matchEstatus;

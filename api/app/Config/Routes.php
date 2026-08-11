@@ -50,6 +50,12 @@ $routes->get('reportes/resumen', 'ApiController::getExecutiveReport');
 $routes->post('importar/csv', 'ApiController::importCSV');
 $routes->post('importar/xml', 'ApiController::reconcileXML');
 
+// Nuevos endpoints Sprint
+$routes->post('cotizaciones/upload', 'ApiController::uploadCotizacionEvidencia');
+$routes->get('migracion/audit', 'ApiController::getMigracionAudit');
+$routes->get('reportes/historico', 'ApiController::getFacturacionHistorica');
+$routes->get('reportes/cliente-mes/(:segment)', 'ApiController::getFacturacionClienteUltimoMes/$1');
+
 
 // ------------------------------------------------------------------------
 // GROUPED ROUTES (For direct URL mapping /api/public/index.php/api/...)
@@ -94,4 +100,10 @@ $routes->group('api', function($routes) {
     $routes->get('reportes/resumen', 'ApiController::getExecutiveReport');
     $routes->post('importar/csv', 'ApiController::importCSV');
     $routes->post('importar/xml', 'ApiController::reconcileXML');
+
+    // Nuevos endpoints Sprint
+    $routes->post('cotizaciones/upload', 'ApiController::uploadCotizacionEvidencia');
+    $routes->get('migracion/audit', 'ApiController::getMigracionAudit');
+    $routes->get('reportes/historico', 'ApiController::getFacturacionHistorica');
+    $routes->get('reportes/cliente-mes/(:segment)', 'ApiController::getFacturacionClienteUltimoMes/$1');
 });

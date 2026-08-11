@@ -16,6 +16,8 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <!-- HTML2PDF CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -110,7 +112,7 @@
         <div class="w-full max-w-md bg-white border border-slate-200 rounded-3xl p-10 shadow-sm space-y-8">
           <div>
             <h3 class="text-2xl font-bold text-slate-900">Iniciar sesión</h3>
-            <p class="text-sm text-slate-500 mt-1">Ingresa con tu correo authorized para continuar.</p>
+            <p class="text-sm text-slate-500 mt-1">Ingresa con tu correo autorizado para continuar.</p>
           </div>
 
           <form class="space-y-6" @submit.prevent="handleLogin()">
@@ -157,9 +159,9 @@
   <!-- PORTAL PRINCIPAL (SPA) -->
   <template x-if="isLoggedIn">
     <div class="flex h-screen overflow-hidden">
-      <!-- SIDEBAR -->
-      <aside class="w-64 bg-white border-r border-slate-200 flex flex-col h-full flex-shrink-0">
-        <div class="h-16 flex items-center gap-3 border-b border-slate-200 px-6">
+      <!-- SIDEBAR (Colapsable BQS-003) -->
+      <aside :class="isSidebarCollapsed ? 'w-0 border-r-0' : 'w-64 border-r border-slate-200'" class="bg-white flex flex-col h-full flex-shrink-0 transition-all duration-300 overflow-hidden">
+        <div class="h-16 flex items-center gap-3 border-b border-slate-200 px-6 flex-shrink-0">
           <span class="w-9 h-9 flex items-center justify-center rounded-lg bg-bqs text-white text-sm font-bold tracking-wider">BQS</span>
           <div>
             <p class="font-semibold text-sm text-slate-900 leading-tight">Portal Ejecutivo</p>
@@ -174,7 +176,11 @@
             <div class="space-y-1">
               <button @click="navigate('resumen')" :class="activePage === 'resumen' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                Resumen
+                Resumen / Charts
+              </button>
+              <button @click="navigate('super_captura')" :class="activePage === 'super_captura' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                Super Captura Wizard
               </button>
               <button @click="navigate('porfacturar')" :class="activePage === 'porfacturar' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -193,15 +199,15 @@
 
           <!-- Grupo Operación -->
           <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">Catalogos & Operación</p>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">Catálogos & Operación</p>
             <div class="space-y-1">
               <button @click="navigate('clientes')" :class="activePage === 'clientes' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                Clientes
+                Clientes (UID)
               </button>
               <button @click="navigate('cotizaciones')" :class="activePage === 'cotizaciones' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                Cotizaciones
+                Cotizaciones (Evidencia)
               </button>
               <button @click="navigate('devengado')" :class="activePage === 'devengado' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
@@ -222,6 +228,10 @@
           <div>
             <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">Administración</p>
             <div class="space-y-1">
+              <button @click="navigate('migracion')" :class="activePage === 'migracion' ? 'bg-red-50 text-red-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                Facturas en el Aire (Audit)
+              </button>
               <button @click="navigate('importar')" :class="activePage === 'importar' ? 'bg-bqs-soft text-bqs font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition duration-150">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                 Importar & Conciliar
@@ -241,7 +251,13 @@
       <div class="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden">
         <!-- TOPBAR -->
         <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0">
-          <div>
+          <div class="flex items-center">
+            <!-- BOTÓN COLLAPSE SIDEBAR (BQS-003) -->
+            <button @click="toggleSidebar()" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100 focus:outline-none mr-4" aria-label="Toggle Sidebar">
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
             <h1 class="text-lg font-bold text-slate-800" x-text="getPageTitle()"></h1>
           </div>
           <div class="flex items-center gap-3">
@@ -259,7 +275,25 @@
 
             <!-- PAGE: RESUMEN (DASHBOARD) -->
             <div x-show="activePage === 'resumen'" class="space-y-6">
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              <!-- Toggle Pareto / Semáforo (BQS-007) -->
+              <div class="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div>
+                  <h3 class="font-bold text-slate-800 text-sm">Modo de Alertas de Cobranza</h3>
+                  <p class="text-xs text-slate-500">Elige la forma en que se priorizan tus alertas críticas</p>
+                </div>
+                <div class="inline-flex rounded-xl p-1 bg-slate-100">
+                  <button @click="paretoView = false" :class="!paretoView ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="rounded-lg px-4 py-2 text-xs font-semibold transition duration-150">
+                    Semáforos estándar
+                  </button>
+                  <button @click="paretoView = true" :class="paretoView ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="rounded-lg px-4 py-2 text-xs font-semibold transition duration-150">
+                    Pareto 80/20
+                  </button>
+                </div>
+              </div>
+
+              <!-- Vista Semáforos Estándar -->
+              <div x-show="!paretoView" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- KPI 1 -->
                 <div class="bg-white rounded-2xl border border-slate-200 p-6 relative overflow-hidden shadow-sm">
                   <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500"></span>
@@ -283,7 +317,72 @@
                 </div>
               </div>
 
-              <!-- NUEVA SECCIÓN: Tarjetas de Saldos Vigentes por Cliente (Ticket 3) -->
+              <!-- Vista Diagrama de Pareto 80/20 (BQS-007) -->
+              <div x-show="paretoView" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden p-6 space-y-4">
+                <div>
+                  <h3 class="font-bold text-slate-800">Priorización de Deudas: Diagrama de Pareto 80/20</h3>
+                  <p class="text-xs text-slate-500">Clientes ordenados de mayor a menor deuda. Concéntrate en la franja crítica del 80% para optimizar tus esfuerzos de cobranza.</p>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-slate-200 text-xs">
+                    <thead>
+                      <tr class="text-left font-bold text-slate-500 bg-slate-50">
+                        <th class="p-3 border">Cliente</th>
+                        <th class="p-3 border text-right">Deuda Total</th>
+                        <th class="p-3 border text-right">Acumulado %</th>
+                        <th class="p-3 border text-center">Clasificación</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="item in getParetoData()">
+                        <tr :class="parseFloat(item.acumulado_pct) <= 80 ? 'bg-red-50/50' : 'hover:bg-slate-50/30'">
+                          <td class="p-3 border text-slate-800 font-semibold" x-text="item.cliente"></td>
+                          <td class="p-3 border text-right font-mono font-bold" x-text="formatCurrency(item.deuda)"></td>
+                          <td class="p-3 border text-right font-mono font-bold" x-text="item.acumulado_pct + '%'"></td>
+                          <td class="p-3 border text-center">
+                            <span :class="parseFloat(item.acumulado_pct) <= 80 ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-600'" class="inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider" x-text="parseFloat(item.acumulado_pct) <= 80 ? 'Crítico (80%)' : 'Estándar'"></span>
+                          </td>
+                        </tr>
+                      </template>
+                      <template x-if="getParetoData().length === 0">
+                        <tr>
+                          <td colspan="4" class="p-6 text-center text-slate-400">No hay cuentas por cobrar activas registradas.</td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Gráficas de Facturación Histórica y por Cliente (BQS-008) -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <!-- Gráfica 1: Histórico de Ventas -->
+                <div class="space-y-4">
+                  <h3 class="font-bold text-slate-800">Comportamiento Financiero Histórico</h3>
+                  <p class="text-xs text-slate-500">Visualización cronológica de facturación global</p>
+                  <div class="h-64 relative">
+                    <canvas id="chart-historico"></canvas>
+                  </div>
+                </div>
+
+                <!-- Gráfica 2: Cruce por Cliente en los Últimos 30 Días -->
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-slate-800">Facturación de Clientes (Últimos 30 Días)</h3>
+                    <select x-model="selectedClientForChart" @change="updateClientChart()" class="rounded-xl border border-slate-200 py-1.5 px-3 text-xs text-slate-700">
+                      <template x-for="c in clientes">
+                        <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial"></option>
+                      </template>
+                    </select>
+                  </div>
+                  <p class="text-xs text-slate-500">Desglose e historial del cliente seleccionado</p>
+                  <div class="h-64 relative">
+                    <canvas id="chart-cliente-mes"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Resumen por Cliente Tarjetas -->
               <div class="space-y-3">
                 <h3 class="font-bold text-slate-800 text-sm">Resumen de Cartera y Saldos por Cliente (Cuentas por Cobrar)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -330,46 +429,166 @@
                   </template>
                 </div>
               </div>
+            </div>
 
-              <!-- Tabla de desglose por facturar -->
-              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
-                  <h3 class="font-bold text-slate-800">Desglose de Servicios Pendientes por Cotización</h3>
-                  <p class="text-xs text-slate-500">Monto devengado no facturado</p>
-                </div>
-                <div class="p-6">
-                  <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200">
-                      <thead>
-                        <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
-                          <th class="pb-3">Cotización</th>
-                          <th class="pb-3">Cliente</th>
-                          <th class="pb-3 text-right">Cantidad Turnos</th>
-                          <th class="pb-3 text-right">Total Pendiente</th>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-slate-100 text-sm">
-                        <template x-for="item in dashboardData.desglose_por_facturar">
-                          <tr>
-                            <td class="py-3 font-mono font-medium text-slate-900" x-text="item.ID_Cotizacion"></td>
-                            <td class="py-3 text-slate-700" x-text="item.Cliente"></td>
-                            <td class="py-3 text-right text-slate-600 font-mono" x-text="item.Capturas"></td>
-                            <td class="py-3 text-right font-bold text-slate-900 font-mono" x-text="formatCurrency(item.Pendiente)"></td>
-                          </tr>
-                        </template>
-                        <template x-if="dashboardData.desglose_por_facturar.length === 0">
-                          <tr>
-                            <td colspan="4" class="py-6 text-center text-slate-400">No hay servicios devengados pendientes.</td>
-                          </tr>
-                        </template>
-                      </tbody>
-                    </table>
+            <!-- PAGE: SUPER CAPTURA WIZARD (BQS-003) -->
+            <div x-show="activePage === 'super_captura'" class="space-y-6">
+              <div class="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm max-w-2xl mx-auto space-y-6">
+                <!-- Paso Indicador -->
+                <div class="flex items-center justify-between border-b pb-4">
+                  <div>
+                    <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Flujo Guiado Paso a Paso</span>
+                    <h3 class="text-xl font-bold text-slate-800" x-text="'Paso ' + superCapturaStep + ' de 4'"></h3>
                   </div>
+                  <div class="flex gap-1.5">
+                    <span :class="superCapturaStep >= 1 ? 'bg-indigo-600' : 'bg-slate-200'" class="w-8 h-2 rounded-full transition duration-300"></span>
+                    <span :class="superCapturaStep >= 2 ? 'bg-indigo-600' : 'bg-slate-200'" class="w-8 h-2 rounded-full transition duration-300"></span>
+                    <span :class="superCapturaStep >= 3 ? 'bg-indigo-600' : 'bg-slate-200'" class="w-8 h-2 rounded-full transition duration-300"></span>
+                    <span :class="superCapturaStep >= 4 ? 'bg-indigo-600' : 'bg-slate-200'" class="w-8 h-2 rounded-full transition duration-300"></span>
+                  </div>
+                </div>
+
+                <!-- Paso 1: Cliente -->
+                <div x-show="superCapturaStep === 1" class="space-y-4">
+                  <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-slate-700">Seleccionar Cliente Existente</label>
+                    <select x-model="superCapturaForm.ID_Cliente" class="block w-full rounded-xl border border-slate-200 py-3 px-4 text-sm mt-1 focus:outline-none">
+                      <option value="">-- Elige un Cliente --</option>
+                      <template x-for="c in clientes">
+                        <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial + ' (' + c.ID_Cliente + ')'"></option>
+                      </template>
+                    </select>
+                  </div>
+
+                  <div class="pt-4 border-t border-dashed mt-4 space-y-3">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">O Crear un Nuevo Cliente</span>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">ID de Cliente</label>
+                        <input type="text" x-model="superCapturaForm.ID_Cliente" placeholder="CLI-005" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                      </div>
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">RFC</label>
+                        <input type="text" x-model="superCapturaForm.RFC" placeholder="XAXX010101000" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                      </div>
+                    </div>
+                    <div>
+                      <label class="text-xs font-semibold text-slate-600">Nombre Comercial</label>
+                      <input type="text" x-model="superCapturaForm.Nombre_Comercial" placeholder="Nombre Comercial" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                    </div>
+                    <div>
+                      <label class="text-xs font-semibold text-slate-600">Nombre Fiscal</label>
+                      <input type="text" x-model="superCapturaForm.Nombre_Fiscal" placeholder="Nombre Fiscal Completo" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                    </div>
+                    <button type="button" @click="superCapturaCreateCliente()" class="w-full rounded-xl bg-slate-800 hover:bg-slate-900 py-2.5 text-xs font-semibold text-white">
+                      Registrar y Continuar
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Paso 2: Cotización -->
+                <div x-show="superCapturaStep === 2" class="space-y-4">
+                  <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-slate-700">Seleccionar Cotización Existente del Cliente</label>
+                    <select x-model="superCapturaForm.ID_Cotizacion" class="block w-full rounded-xl border border-slate-200 py-3 px-4 text-sm mt-1 focus:outline-none">
+                      <option value="">-- Elige una Cotización --</option>
+                      <template x-for="c in cotizaciones.filter(cot => cot.ID_Cliente === superCapturaForm.ID_Cliente)">
+                        <option :value="c.ID_Cotizacion" x-text="c.ID_Cotizacion + ' ($ ' + c.Monto_Autorizado + ')'"></option>
+                      </template>
+                    </select>
+                  </div>
+
+                  <div class="pt-4 border-t border-dashed mt-4 space-y-3">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">O Crear una Nueva Cotización</span>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">ID Cotización</label>
+                        <input type="text" x-model="superCapturaForm.ID_Cotizacion" placeholder="COT-005" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                      </div>
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">Monto Autorizado</label>
+                        <input type="number" step="0.01" x-model="superCapturaForm.Monto_Autorizado" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 font-mono">
+                      </div>
+                    </div>
+                    <div>
+                      <label class="text-xs font-semibold text-slate-600">PO / Referencia de Compra</label>
+                      <input type="text" x-model="superCapturaForm.PO_Referencia" placeholder="PO-12345" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                    </div>
+                    <button type="button" @click="superCapturaCreateCotizacion()" class="w-full rounded-xl bg-slate-800 hover:bg-slate-900 py-2.5 text-xs font-semibold text-white">
+                      Registrar Cotización y Continuar
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Paso 3: Sorteo Devengado -->
+                <div x-show="superCapturaStep === 3" class="space-y-4">
+                  <div class="space-y-3">
+                    <label class="block text-sm font-semibold text-slate-700">Registrar Turno o Trabajo Realizado</label>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">Folio Captura (ID)</label>
+                        <input type="text" x-model="superCapturaForm.ID_Captura" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 font-mono">
+                      </div>
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">Fecha del Sorteo</label>
+                        <input type="date" x-model="superCapturaForm.Fecha" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">Horas</label>
+                        <input type="number" step="0.1" x-model="superCapturaForm.Horas_Trabajadas" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 font-mono">
+                      </div>
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">Piezas</label>
+                        <input type="number" x-model="superCapturaForm.Piezas_Sorteadas" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 font-mono">
+                      </div>
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">Monto Devengado</label>
+                        <input type="number" step="0.01" x-model="superCapturaForm.Monto_Devengado" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 font-mono">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Paso 4: Confirmación -->
+                <div x-show="superCapturaStep === 4" class="space-y-4">
+                  <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 text-sm space-y-3">
+                    <span class="font-bold text-indigo-700 uppercase tracking-wide block text-xs">Resumen del Registro</span>
+                    <div class="grid grid-cols-2 gap-4 text-slate-700">
+                      <div>
+                        <span class="text-slate-400 block text-xs">Cliente</span>
+                        <strong x-text="superCapturaForm.ID_Cliente"></strong>
+                      </div>
+                      <div>
+                        <span class="text-slate-400 block text-xs">Cotización</span>
+                        <strong x-text="superCapturaForm.ID_Cotizacion"></strong>
+                      </div>
+                      <div>
+                        <span class="text-slate-400 block text-xs">Fecha</span>
+                        <strong x-text="superCapturaForm.Fecha"></strong>
+                      </div>
+                      <div>
+                        <span class="text-slate-400 block text-xs">Monto Devengado</span>
+                        <strong class="font-mono" x-text="formatCurrency(superCapturaForm.Monto_Devengado)"></strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Botones de Navegación -->
+                <div class="flex justify-between items-center border-t pt-4">
+                  <button type="button" @click="superCapturaPrevStep()" :disabled="superCapturaStep === 1" :class="superCapturaStep === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'" class="rounded-xl border border-slate-200 py-3 px-6 text-xs font-semibold text-slate-600">
+                    Atrás
+                  </button>
+                  <button type="button" @click="superCapturaStep === 4 ? superCapturaFinalize() : superCapturaNextStep()" class="rounded-xl bg-indigo-600 hover:bg-indigo-700 py-3 px-8 text-xs font-semibold text-white shadow-sm transition duration-150">
+                    <span x-text="superCapturaStep === 4 ? 'Confirmar y Guardar' : 'Siguiente'"></span>
+                  </button>
                 </div>
               </div>
             </div>
 
-            <!-- PAGE: POR FACTURAR (Con filtros avanzados) -->
+            <!-- PAGE: POR FACTURAR -->
             <div x-show="activePage === 'porfacturar'" class="space-y-6">
               <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                 <div class="flex flex-1 gap-4 w-full">
@@ -418,7 +637,7 @@
               </div>
             </div>
 
-            <!-- PAGE: POR COBRAR (Con filtros avanzados) -->
+            <!-- PAGE: POR COBRAR -->
             <div x-show="activePage === 'porcobrar'" class="space-y-6">
               <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                 <div class="flex flex-1 gap-4 w-full">
@@ -469,12 +688,12 @@
               </div>
             </div>
 
-            <!-- PAGE: CLIENTES -->
+            <!-- PAGE: CLIENTES (BQS-004 UID visible) -->
             <div x-show="activePage === 'clientes'" class="space-y-6">
               <!-- Filtros & Buscar -->
               <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                 <div class="flex flex-1 gap-4 w-full">
-                  <input type="text" x-model="filters.clientes.search" placeholder="Buscar por Nombre, RFC..." class="block w-full max-w-md rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900 focus:outline-none focus:border-bqs focus:ring-2 focus:ring-bqs/10">
+                  <input type="text" x-model="filters.clientes.search" placeholder="Buscar por Nombre, UID, RFC..." class="block w-full max-w-md rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900 focus:outline-none focus:border-bqs focus:ring-2 focus:ring-bqs/10">
                   <select x-model="filters.clientes.estatus" class="block w-40 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
                     <option value="">Estatus: Todos</option>
                     <option value="Activo">Activo</option>
@@ -492,7 +711,7 @@
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                       <thead>
                         <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
-                          <th class="pb-3">ID Cliente</th>
+                          <th class="pb-3">UID (Identificador)</th>
                           <th class="pb-3">Nombre Comercial</th>
                           <th class="pb-3">Nombre Fiscal</th>
                           <th class="pb-3">RFC</th>
@@ -503,7 +722,7 @@
                       <tbody class="divide-y divide-slate-100">
                         <template x-for="cli in getFilteredClientes()">
                           <tr>
-                            <td class="py-3 font-mono text-slate-500" x-text="cli.ID_Cliente"></td>
+                            <td class="py-3 font-mono font-bold text-slate-900" x-text="cli.ID_Cliente"></td>
                             <td class="py-3 font-medium text-slate-900" x-text="cli.Nombre_Comercial"></td>
                             <td class="py-3 text-slate-600" x-text="cli.Nombre_Fiscal"></td>
                             <td class="py-3 font-mono text-slate-600" x-text="cli.RFC"></td>
@@ -523,7 +742,7 @@
               </div>
             </div>
 
-            <!-- PAGE: COTIZACIONES -->
+            <!-- PAGE: COTIZACIONES (BQS-006 Filtros & BQS-005 Evidencias) -->
             <div x-show="activePage === 'cotizaciones'" class="space-y-6">
               <!-- Filtros & Buscar -->
               <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
@@ -538,8 +757,8 @@
                   <select x-model="filters.cotizaciones.estatus" class="block w-40 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
                     <option value="">Estatus: Todos</option>
                     <option value="Aprobada">Aprobada</option>
-                    <option value="Pendiente PO">Pendiente PO</option>
-                    <option value="Cerrada">Cerrada</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Enviada">Enviada</option>
                   </select>
                 </div>
                 <button @click="openAddModal('cotizacion')" class="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-bqs hover:bg-bqs-hover py-2.5 px-5 text-sm font-semibold text-white transition duration-150">
@@ -559,6 +778,7 @@
                           <th class="pb-3 text-right">Monto Autorizado</th>
                           <th class="pb-3 text-right">Piezas</th>
                           <th class="pb-3">Estatus</th>
+                          <th class="pb-3">Evidencia Foto</th>
                           <th class="pb-3 text-right">Acciones</th>
                         </tr>
                       </thead>
@@ -571,7 +791,22 @@
                             <td class="py-3 text-right font-mono font-semibold" x-text="formatCurrency(cot.Monto_Autorizado)"></td>
                             <td class="py-3 text-right font-mono" x-text="cot.Piezas_Autorizadas"></td>
                             <td class="py-3">
-                              <span :class="cot.Estatus === 'Aprobada' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'" class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5" x-text="cot.Estatus"></span>
+                              <span :class="{
+                                'bg-emerald-50 text-emerald-700': cot.Estatus === 'Aprobada',
+                                'bg-amber-50 text-amber-700': cot.Estatus === 'Pendiente',
+                                'bg-blue-50 text-bqs': cot.Estatus === 'Enviada'
+                              }" class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5" x-text="cot.Estatus"></span>
+                            </td>
+                            <td class="py-3">
+                              <template x-if="cot.Evidencia">
+                                <a :href="'/' + cot.Evidencia" target="_blank" class="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold hover:underline">
+                                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                  Ver Imagen
+                                </a>
+                              </template>
+                              <template x-if="!cot.Evidencia">
+                                <span class="text-xs text-slate-400">Sin archivo</span>
+                              </template>
                             </td>
                             <td class="py-3 text-right space-x-2">
                               <button @click="openEditModal('cotizacion', cot)" class="text-bqs hover:text-bqs-hover font-medium">Editar</button>
@@ -774,7 +1009,50 @@
               </div>
             </div>
 
-            <!-- PAGE: REPORTES (CUSTOM SPLIT LAYOUT) -->
+            <!-- PAGE: AUDITORIA PRE-MIGRACION (BQS-009) -->
+            <div x-show="activePage === 'migracion'" class="space-y-6">
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
+                <div>
+                  <h3 class="font-bold text-slate-800">Reporte de "Cobranza en Tránsito" (Facturas flotantes sin liquidar)</h3>
+                  <p class="text-xs text-slate-500">Revisa los registros de cobranza que carecen de un estatus de "Pagado" antes de proceder con el proceso de migración final.</p>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead>
+                      <tr class="text-left font-bold text-slate-500 bg-slate-50">
+                        <th class="p-3 border">Folio Factura</th>
+                        <th class="p-3 border">Cliente</th>
+                        <th class="p-3 border">RFC</th>
+                        <th class="p-3 border">Fecha Emisión</th>
+                        <th class="p-3 border text-right">Monto Pendiente</th>
+                        <th class="p-3 border">Estatus Pago</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="fac in migracionAuditData">
+                        <tr>
+                          <td class="p-3 border font-mono font-medium text-slate-900" x-text="fac.Folio_Factura"></td>
+                          <td class="p-3 border text-slate-700" x-text="fac.Cliente"></td>
+                          <td class="p-3 border font-mono text-slate-600" x-text="fac.RFC"></td>
+                          <td class="p-3 border text-slate-500" x-text="fac.Fecha_Emision"></td>
+                          <td class="p-3 border text-right font-mono font-bold text-red-600" x-text="fac.Moneda === 'Dolar americano' ? formatUSD(fac.Monto_Total) : formatCurrency(fac.Monto_Total)"></td>
+                          <td class="p-3 border">
+                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold bg-amber-50 text-amber-700" x-text="fac.Estatus_Pago"></span>
+                          </td>
+                        </tr>
+                      </template>
+                      <template x-if="migracionAuditData.length === 0">
+                        <tr>
+                          <td colspan="6" class="p-6 text-center text-slate-400">Excelente. No hay facturas en tránsito / flotantes pendientes de cobro.</td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAGE: REPORTES -->
             <div x-show="activePage === 'reportes'" class="space-y-6">
               <!-- KPI Summary Cards -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -831,7 +1109,7 @@
                 </button>
               </div>
 
-              <!-- Two Column split tables (Weights MXN on Left, USD on Right) -->
+              <!-- Two Column split tables -->
               <div id="reporte-ejecutivo-content" class="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                 
                 <!-- Pesos Table -->
@@ -1065,7 +1343,7 @@
       
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-semibold text-slate-700">ID Cliente</label>
+          <label class="block text-sm font-semibold text-slate-700">ID Cliente / UID</label>
           <input type="text" x-model="clientForm.ID_Cliente" :disabled="isEdit" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none focus:border-bqs" placeholder="CLI-001">
         </div>
         <div>
@@ -1100,7 +1378,7 @@
     </div>
   </div>
 
-  <!-- MODAL: COTIZACION -->
+  <!-- MODAL: COTIZACION (BQS-005 Evidencia Upload) -->
   <div x-show="showModal === 'cotizacion'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
     <div class="bg-white rounded-3xl max-w-md w-full p-8 border border-slate-200 shadow-xl space-y-6">
       <h3 class="text-xl font-bold text-slate-900" x-text="isEdit ? 'Editar Cotización' : 'Nueva Cotización'"></h3>
@@ -1134,10 +1412,17 @@
         <div>
           <label class="block text-sm font-semibold text-slate-700">Estatus</label>
           <select x-model="cotizacionForm.Estatus" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
-            <option value="Pendiente PO">Pendiente PO</option>
+            <option value="Pendiente">Pendiente</option>
             <option value="Aprobada">Aprobada</option>
-            <option value="Cerrada">Cerrada</option>
+            <option value="Enviada">Enviada</option>
           </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Adjuntar Evidencia Fotográfica</label>
+          <input type="file" @change="uploadQuoteEvidencia($event)" accept="image/*" class="block w-full text-xs text-slate-500 mt-2 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-bqs-soft file:text-bqs hover:file:bg-indigo-100">
+          <template x-if="cotizacionForm.Evidencia">
+            <p class="text-xs text-emerald-600 mt-1 font-mono">Archivo subido: <span x-text="cotizacionForm.Evidencia"></span></p>
+          </template>
         </div>
       </div>
 

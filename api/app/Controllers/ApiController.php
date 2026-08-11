@@ -13,6 +13,17 @@ class ApiController extends BaseController
 {
     use ResponseTrait;
 
+    public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
+    {
+        parent::initController($request, $response, $logger);
+        
+        // Auto-alter column Evidencia if it doesn't exist
+        $db = \Config\Database::connect();
+        if (!$db->fieldExists('Evidencia', 'COTIZACIONES')) {
+            $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Evidencia TEXT DEFAULT NULL");
+        }
+    }
+
     protected $bqsRfc = "BQS120813DF5";
 
     // ------------------------------------------------------------------------
@@ -708,6 +719,72 @@ class ApiController extends BaseController
                 'dolares_pendiente' => $totalDolaresPendiente
             ]
         ]);
+    }
+
+    public function uploadCotizacionEvidencia()
+    {
+        $file = $this->request->getFile('foto');
+        if (!$file || !$file->isValid()) {
+            return $this->fail('No se pudo subir la foto o el archivo no es válido.');
+        }
+
+        if (!in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'])) {
+            return $this->fail('El archivo debe ser una imagen válida (jpeg, png, gif, webp).');
+        }
+
+        // Save to public uploads
+        $uploadPath = ROOTPATH . '../public_html/uploads/';
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
+
+        $newName = $file->getRandomName();
+        if ($file->move($uploadPath, $newName)) {
+            return $this->respond([
+                'status' => 'success',
+                'path'   => 'uploads/' . $newName
+            ]);
+        }
+
+        return $this->fail('No se pudo guardar la imagen en el servidor.');
+    }
+
+    public function getMigracionAudit()
+    {
+        $facturaModel = new FacturaModel();
+        $invoices = $facturaModel->select('FACTURAS.*, CAT_CLIENTES.Nombre_Comercial AS Cliente, CAT_CLIENTES.RFC')
+            ->join('CAT_CLIENTES', 'FACTURAS.ID_Cliente = CAT_CLIENTES.ID_Cliente')
+            ->where('Estatus_Pago !=', 'Pagada')
+            ->findAll();
+
+        return $this->respond($invoices);
+    }
+
+    public function getFacturacionHistorica()
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('FACTURAS');
+        $builder->select("DATE_FORMAT(Fecha_Emision, '%Y-%m') as mes, SUM(Monto_Total) as total");
+        $builder->groupBy("mes");
+        $builder->orderBy("mes", "ASC");
+        $historico = $builder->get()->getResultArray();
+
+        return $this->respond($historico);
+    }
+
+    public function getFacturacionClienteUltimoMes($idCliente)
+    {
+        $db = \Config\Database::connect();
+        $dateLimit = date('Y-m-d', strtotime('-30 days'));
+
+        $builder = $db->table('FACTURAS');
+        $builder->select("Fecha_Emision as fecha, Folio_Factura, Monto_Total, Moneda");
+        $builder->where('ID_Cliente', $idCliente);
+        $builder->where('Fecha_Emision >=', $dateLimit);
+        $builder->orderBy('Fecha_Emision', 'ASC');
+        $desglose = $builder->get()->getResultArray();
+
+        return $this->respond($desglose);
     }
 }
 
