@@ -786,5 +786,41 @@ class ApiController extends BaseController
 
         return $this->respond($desglose);
     }
+
+    public function clearAllData()
+    {
+        $db = \Config\Database::connect();
+        
+        $tables = ['PAGOS', 'FACTURAS', 'BITACORA_SORTEO', 'COTIZACIONES', 'CAT_CLIENTES'];
+        $backupText = "-- BQS Auto Backup before clear\n\n";
+        
+        foreach ($tables as $table) {
+            $query = $db->query("SELECT * FROM `$table`");
+            $rows = $query->getResultArray();
+            if (!empty($rows)) {
+                $backupText .= "-- Table $table data\n";
+                foreach ($rows as $row) {
+                    $keys = array_map(function($k) { return "`$k`"; }, array_keys($row));
+                    $vals = array_map(function($v) use ($db) { return $db->escape($v); }, array_values($row));
+                    $backupText .= "INSERT INTO `$table` (" . implode(', ', $keys) . ") VALUES (" . implode(', ', $vals) . ");\n";
+                }
+                $backupText .= "\n";
+            }
+        }
+        
+        $backupPath = WRITEPATH . 'uploads/backup_before_clear_' . date('Ymd_His') . '.sql';
+        file_put_contents($backupPath, $backupText);
+
+        $db->query("SET FOREIGN_KEY_CHECKS = 0");
+        foreach ($tables as $table) {
+            $db->query("TRUNCATE TABLE `$table`");
+        }
+        $db->query("SET FOREIGN_KEY_CHECKS = 1");
+
+        return $this->respond([
+            'status' => 'success',
+            'message' => 'Base de datos limpiada a cero. Respaldo guardado en: ' . basename($backupPath)
+        ]);
+    }
 }
 
