@@ -427,6 +427,28 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        seedDatabase() {
+            if (!confirm('¿Estás seguro de sembrar datos de prueba? Esto reiniciará la base de datos con registros demo.')) return;
+            fetch('/api/admin/seed-database', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Datos de prueba sembrados.');
+                this.loadAllData();
+            })
+            .catch(err => alert('Error al sembrar: ' + err.message));
+        },
+
+        clearDatabase() {
+            if (!confirm('¿Estás seguro de borrar todos los datos? Esto vaciará todas las tablas (Clientes, Cotizaciones, Sorteos, Facturas, Pagos).')) return;
+            fetch('/api/admin/clear-database-zero', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Base de datos borrada a cero.');
+                this.loadAllData();
+            })
+            .catch(err => alert('Error al borrar: ' + err.message));
+        },
+
         saveItem(type) {
             let url = `/api/${type === 'devengado' ? 'devengado' : type === 'pago' ? 'pagos' : type + 's'}`;
             let id = '';

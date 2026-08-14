@@ -56,6 +56,7 @@ $routes->get('migracion/audit', 'ApiController::getMigracionAudit');
 $routes->get('reportes/historico', 'ApiController::getFacturacionHistorica');
 $routes->get('reportes/cliente-mes/(:segment)', 'ApiController::getFacturacionClienteUltimoMes/$1');
 $routes->post('admin/clear-database-zero', 'ApiController::clearAllData');
+$routes->post('admin/seed-database', 'ApiController::seedDatabase');
 
 
 // ------------------------------------------------------------------------
@@ -108,4 +109,5 @@ $routes->group('api', function($routes) {
     $routes->get('reportes/historico', 'ApiController::getFacturacionHistorica');
     $routes->get('reportes/cliente-mes/(:segment)', 'ApiController::getFacturacionClienteUltimoMes/$1');
     $routes->post('admin/clear-database-zero', 'ApiController::clearAllData');
+    $routes->post('admin/seed-database', 'ApiController::seedDatabase');
 });
