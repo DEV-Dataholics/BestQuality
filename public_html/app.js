@@ -1,3 +1,6 @@
+let chartHistorico = null;
+let chartClienteMes = null;
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('bqsApp', () => ({
         isLoggedIn: false,
@@ -47,8 +50,6 @@ document.addEventListener('alpine:init', () => {
         historicoFacturacion: [],
         desgloseClienteUltimoMes: [],
         selectedClientForChart: '',
-        chartHistorico: null,
-        chartClienteMes: null,
 
         // Auditoria
         migracionAuditData: [],
@@ -199,10 +200,10 @@ document.addEventListener('alpine:init', () => {
                 .then(res => res.json())
                 .then(data => {
                     this.historicoFacturacion = data;
-                    if (this.chartHistorico) {
-                        this.chartHistorico.data.labels = data.map(d => d.mes);
-                        this.chartHistorico.data.datasets[0].data = data.map(d => parseFloat(d.total));
-                        this.chartHistorico.update();
+                    if (chartHistorico) {
+                        chartHistorico.data.labels = data.map(d => d.mes);
+                        chartHistorico.data.datasets[0].data = data.map(d => parseFloat(d.total));
+                        chartHistorico.update();
                     }
                 });
 
@@ -218,10 +219,10 @@ document.addEventListener('alpine:init', () => {
                 .then(res => res.json())
                 .then(data => {
                     this.desgloseClienteUltimoMes = data;
-                    if (this.chartClienteMes) {
-                        this.chartClienteMes.data.labels = data.map(d => d.fecha);
-                        this.chartClienteMes.data.datasets[0].data = data.map(d => parseFloat(d.Monto_Total));
-                        this.chartClienteMes.update();
+                    if (chartClienteMes) {
+                        chartClienteMes.data.labels = data.map(d => d.fecha);
+                        chartClienteMes.data.datasets[0].data = data.map(d => parseFloat(d.Monto_Total));
+                        chartClienteMes.update();
                     }
                 });
         },
@@ -230,8 +231,8 @@ document.addEventListener('alpine:init', () => {
             if (typeof Chart === 'undefined') return;
 
             const ctxHistorico = document.getElementById('chart-historico');
-            if (ctxHistorico && !this.chartHistorico) {
-                this.chartHistorico = new Chart(ctxHistorico, {
+            if (ctxHistorico && !chartHistorico) {
+                chartHistorico = new Chart(ctxHistorico, {
                     type: 'line',
                     data: {
                         labels: this.historicoFacturacion.map(d => d.mes),
@@ -252,8 +253,8 @@ document.addEventListener('alpine:init', () => {
             }
 
             const ctxCliente = document.getElementById('chart-cliente-mes');
-            if (ctxCliente && !this.chartClienteMes) {
-                this.chartClienteMes = new Chart(ctxCliente, {
+            if (ctxCliente && !chartClienteMes) {
+                chartClienteMes = new Chart(ctxCliente, {
                     type: 'bar',
                     data: {
                         labels: this.desgloseClienteUltimoMes.map(d => d.fecha),
