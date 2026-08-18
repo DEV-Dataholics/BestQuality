@@ -39,6 +39,9 @@ class ApiController extends BaseController
         if (!$db->fieldExists('Notas_Politicas', 'COTIZACIONES')) {
             $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Notas_Politicas TEXT DEFAULT NULL");
         }
+        if (!$db->fieldExists('Numero_Remision', 'COTIZACIONES')) {
+            $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Numero_Remision VARCHAR(30) DEFAULT NULL");
+        }
         if (!$db->fieldExists('ID_Cotizacion', 'FACTURAS')) {
             $db->query("ALTER TABLE FACTURAS ADD COLUMN ID_Cotizacion VARCHAR(20) DEFAULT NULL");
         }
@@ -309,14 +312,16 @@ class ApiController extends BaseController
             // Extract Remision code and match with Cotizacion
             $concepto = trim($data['Primer Concepto'] ?? '');
             $idCotizacion = null;
-            if (preg_match('/REMISION\s+([0-9]+(?:\/[0-9]+)?)/i', $concepto, $matches)) {
+            if (preg_match('/(?:REMISION|REM\-)\s*([0-9]+(?:\/[0-9]+)?)/i', $concepto, $matches)) {
                 $fullRem = $matches[1];
                 $cleanRem = explode('/', $fullRem)[0];
                 
                 $db = \Config\Database::connect();
                 $cot = $db->table('COTIZACIONES')
                     ->groupStart()
-                        ->like('ID_Cotizacion', $cleanRem)
+                        ->like('Numero_Remision', $cleanRem)
+                        ->orLike('Numero_Remision', $fullRem)
+                        ->orLike('ID_Cotizacion', $cleanRem)
                         ->orLike('PO_Referencia', $cleanRem)
                         ->orLike('ID_Cotizacion', $fullRem)
                         ->orLike('PO_Referencia', $fullRem)
@@ -529,10 +534,35 @@ class ApiController extends BaseController
     // ------------------------------------------------------------------------
     // CRUD: COTIZACIONES
     // ------------------------------------------------------------------------
+    private function generateNextRemisionNumber()
+    {
+        $model = new \App\Models\CotizacionModel();
+        $year = date('Y');
+        
+        $quotes = $model->like('Numero_Remision', "/{$year}")->findAll();
+        $maxSeq = 0;
+        foreach ($quotes as $q) {
+            if (preg_match('/^REM\-(\d+)\/' . $year . '$/', $q['Numero_Remision'], $matches)) {
+                $seq = intval($matches[1]);
+                if ($seq > $maxSeq) {
+                    $maxSeq = $seq;
+                }
+            }
+        }
+        
+        $nextSeq = $maxSeq + 1;
+        return 'REM-' . str_pad($nextSeq, 4, '0', STR_PAD_LEFT) . '/' . $year;
+    }
+
     public function createCotizacion()
     {
         $model = new CotizacionModel();
         $data = $this->request->getPost();
+        if (isset($data['Estatus']) && $data['Estatus'] === 'Aprobada') {
+            if (empty($data['Numero_Remision'])) {
+                $data['Numero_Remision'] = $this->generateNextRemisionNumber();
+            }
+        }
         if ($model->insert($data)) {
             return $this->respondCreated($data);
         }
@@ -543,6 +573,12 @@ class ApiController extends BaseController
     {
         $model = new CotizacionModel();
         $data = $this->request->getPost();
+        if (isset($data['Estatus']) && $data['Estatus'] === 'Aprobada') {
+            $current = $model->find($id);
+            if ($current && empty($current['Numero_Remision']) && empty($data['Numero_Remision'])) {
+                $data['Numero_Remision'] = $this->generateNextRemisionNumber();
+            }
+        }
         if ($model->update($id, $data)) {
             return $this->respond(['status' => 'success']);
         }

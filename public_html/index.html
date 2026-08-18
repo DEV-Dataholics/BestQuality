@@ -841,6 +841,7 @@
                           <th class="pb-3">Orden Compra (PO)</th>
                           <th class="pb-3 text-right">Monto Autorizado</th>
                           <th class="pb-3 text-right">Piezas</th>
+                          <th class="pb-3">Remisión</th>
                           <th class="pb-3">Estatus</th>
                           <th class="pb-3">Evidencia Foto</th>
                           <th class="pb-3 text-right">Acciones</th>
@@ -854,6 +855,7 @@
                             <td class="py-3 text-slate-600" x-text="cot.PO_Referencia"></td>
                             <td class="py-3 text-right font-mono font-semibold" x-text="formatCurrency(cot.Monto_Autorizado)"></td>
                             <td class="py-3 text-right font-mono" x-text="cot.Piezas_Autorizadas"></td>
+                            <td class="py-3 font-mono font-semibold text-slate-700" x-text="cot.Numero_Remision || 'Pendiente'"></td>
                             <td class="py-3">
                               <span :class="{
                                 'bg-emerald-50 text-emerald-700': cot.Estatus === 'Aprobada',
@@ -1475,6 +1477,12 @@
           <label class="block text-sm font-semibold text-slate-700">ID Cotización</label>
           <input type="text" x-model="cotizacionForm.ID_Cotizacion" :disabled="isEdit" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none" placeholder="COT-0001">
         </div>
+        <template x-if="cotizacionForm.Numero_Remision">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700">Número de Remisión (Generado)</label>
+            <input type="text" x-model="cotizacionForm.Numero_Remision" disabled class="block w-full rounded-xl border border-slate-100 bg-slate-50 py-2.5 px-4 text-sm mt-1 font-mono font-bold text-slate-700">
+          </div>
+        </template>
         <div>
           <label class="block text-sm font-semibold text-slate-700">Cliente</label>
           <select x-model="cotizacionForm.ID_Cliente" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
@@ -1716,8 +1724,11 @@
               <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">Servicios de Calidad, Sorteo e Inspección de Componentes</p>
             </div>
             <div style="text-align: right;">
-              <h2 style="font-size: 16px; font-weight: bold; color: #4338ca; margin: 0;">COTIZACIÓN</h2>
+              <h2 style="font-size: 16px; font-weight: bold; color: #4338ca; margin: 0;">COTIZACIÓN / REMISIÓN</h2>
               <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: bold; font-family: monospace; color: #1e293b;" x-text="selectedQuoteForPDF.ID_Cotizacion"></p>
+              <template x-if="selectedQuoteForPDF.Numero_Remision">
+                <p style="margin: 2px 0 0 0; font-size: 11px; font-weight: bold; color: #0f766e; font-family: monospace;" x-text="'Remisión: ' + selectedQuoteForPDF.Numero_Remision"></p>
+              </template>
               <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;" x-text="'Fecha: ' + new Date().toLocaleDateString()"></p>
             </div>
           </div>

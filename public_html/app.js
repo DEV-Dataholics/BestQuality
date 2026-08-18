@@ -77,7 +77,7 @@ document.addEventListener('alpine:init', () => {
         selectedQuoteForPDFClient: null,
 
         clientForm: { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo', Direccion: '', CP: '' },
-        cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '', Numero_Parte: '', Planta: '', Notas_Politicas: '' },
+        cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '', Numero_Parte: '', Planta: '', Notas_Politicas: '', Numero_Remision: '' },
         devengadoForm: { ID_Captura: '', Fecha: '', ID_Cotizacion: '', Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0, Estatus_Facturacion: 'Pendiente' },
         facturaForm: { Folio_Factura: '', cfdiUUID: '', ID_Cliente: '', Fecha_Emision: '', Monto_Subtotal: 0, Monto_Total: 0, Moneda: 'Peso Mexicano', Fecha_Vencimiento: '', Estatus_Pago: 'Vigente' },
         pagoForm: { ID_Pago: '', Folio_Factura: '', Fecha_Pago: '', Monto_Pagado: 0, Referencia: '' },
@@ -511,7 +511,8 @@ document.addEventListener('alpine:init', () => {
                     Evidencia: '', 
                     Numero_Parte: '', 
                     Planta: '', 
-                    Notas_Politicas: this.DEFAULT_NOTAS 
+                    Notas_Politicas: this.DEFAULT_NOTAS,
+                    Numero_Remision: ''
                 };
             } else if (type === 'devengado') {
                 this.devengadoForm = { ID_Captura: '', Fecha: new Date().toISOString().split('T')[0], ID_Cotizacion: '', Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0, Estatus_Facturacion: 'Pendiente' };
