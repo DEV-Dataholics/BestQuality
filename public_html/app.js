@@ -64,7 +64,7 @@ document.addEventListener('alpine:init', () => {
         csvStatus: '',
         xmlStatus: '',
         reconciliationLogs: [],
-        tempXmlFile: null,
+        tempXmlFiles: [],
 
         // CRUD Modals and forms state
         showModal: null, // 'cliente', 'cotizacion', 'devengado', 'factura', 'pago'
@@ -653,16 +653,18 @@ document.addEventListener('alpine:init', () => {
         },
 
         uploadXML(event, force = false) {
-            const file = (event && event.target && event.target.files) ? event.target.files[0] : null;
-            if (file) {
-                this.tempXmlFile = file;
+            const files = (event && event.target && event.target.files) ? Array.from(event.target.files) : null;
+            if (files && files.length > 0) {
+                this.tempXmlFiles = files;
             }
-            if (!this.tempXmlFile) return;
+            if (!this.tempXmlFiles || this.tempXmlFiles.length === 0) return;
 
-            this.xmlStatus = 'Procesando complemento XML de conciliación...';
+            this.xmlStatus = 'Procesando complementos XML de conciliación...';
             this.reconciliationLogs = [];
             const formData = new FormData();
-            formData.append('xml_file', this.tempXmlFile);
+            this.tempXmlFiles.forEach(file => {
+                formData.append('xml_file[]', file);
+            });
             if (force) {
                 formData.append('force', 'true');
             }
@@ -691,6 +693,7 @@ document.addEventListener('alpine:init', () => {
                 this.xmlStatus = `Conciliación completa: se registraron ${data.conciliados} abonos/liquidaciones.`;
                 this.reconciliationLogs = data.logs || [];
                 this.loadAllData();
+                this.tempXmlFiles = []; // Reset files
             })
             .catch(err => {
                 this.xmlStatus = 'Error de validación: ' + err.message;

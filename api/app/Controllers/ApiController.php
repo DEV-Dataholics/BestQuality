@@ -329,125 +329,142 @@ class ApiController extends BaseController
 
     public function reconcileXML()
     {
-        $file = $this->request->getFile('xml_file');
-        if (!$file->isValid()) {
-            return $this->fail('Archivo XML no válido.');
+        $files = [];
+        $uploaded = $this->request->getFileMultiple('xml_file');
+        if ($uploaded) {
+            $files = $uploaded;
+        } else {
+            $single = $this->request->getFile('xml_file');
+            if ($single) {
+                $files = [$single];
+            }
         }
 
-        $xmlString = file_get_contents($file->getTempName());
+        if (empty($files)) {
+            return $this->fail('No se subieron archivos XML.');
+        }
+
         $force = $this->request->getPost('force') === 'true';
+        $facturaModel = new FacturaModel();
+        $pagoModel = new PagoModel();
         
-        try {
-            // Desactivar entidades externas para prevenir inyección XML
-            libxml_use_internal_errors(true);
-            $xml = simplexml_load_string($xmlString);
-            if ($xml === false) {
-                return $this->fail('El archivo XML está mal formado.');
+        $logs = [];
+        $conciliados = 0;
+        $duplicates = [];
+        $pendingInserts = [];
+
+        foreach ($files as $file) {
+            if (!$file || !$file->isValid()) {
+                continue;
             }
 
-            // Registrar namespaces
-            $namespaces = $xml->getNamespaces(true);
-            $xml->registerXPathNamespace('cfdi', 'http://www.sat.gob.mx/cfdi/4');
-            $xml->registerXPathNamespace('pago20', 'http://www.sat.gob.mx/Pagos20');
-
-            // Seguridad (Test 5): Validar RFC Emisor
-            $emisor = $xml->xpath('//cfdi:Emisor');
-            if (empty($emisor) || (string)$emisor[0]['Rfc'] !== $this->bqsRfc) {
-                return $this->fail('El archivo XML no pertenece a Best Quality Solutions (RFC emisor inválido)');
-            }
-
-            // Buscar pagos y documentos relacionados
-            $pagos = $xml->xpath('//pago20:Pago');
-            $facturaModel = new FacturaModel();
-            $pagoModel = new PagoModel();
+            $xmlString = file_get_contents($file->getTempName());
             
-            $logs = [];
-            $conciliados = 0;
-            $duplicates = [];
-            $pendingInserts = [];
+            try {
+                // Desactivar entidades externas para prevenir inyección XML
+                libxml_use_internal_errors(true);
+                $xml = simplexml_load_string($xmlString);
+                if ($xml === false) {
+                    $logs[] = "Error en {$file->getName()}: El archivo XML está mal formado.";
+                    continue;
+                }
 
-            foreach ($pagos as $pago) {
-                $fechaPago = explode('T', (string)$pago['FechaPago'])[0];
-                $doctos = $pago->xpath('.//pago20:DoctoRelacionado');
+                // Registrar namespaces
+                $namespaces = $xml->getNamespaces(true);
+                $xml->registerXPathNamespace('cfdi', 'http://www.sat.gob.mx/cfdi/4');
+                $xml->registerXPathNamespace('pago20', 'http://www.sat.gob.mx/Pagos20');
 
-                foreach ($doctos as $doc) {
-                    $uuid = (string)$doc['IdDocumento'];
-                    $impPagado = floatval((string)$doc['ImpPagado']);
-                    $impSaldoInsoluto = floatval((string)$doc['ImpSaldoInsoluto']);
-                    $folio = (string)$doc['Folio'];
+                // Validar RFC Emisor
+                $emisor = $xml->xpath('//cfdi:Emisor');
+                if (empty($emisor) || (string)$emisor[0]['Rfc'] !== $this->bqsRfc) {
+                    $logs[] = "Error en {$file->getName()}: El archivo XML no pertenece a Best Quality Solutions (RFC emisor inválido)";
+                    continue;
+                }
 
-                    // Buscar factura por UUID
-                    $factura = $facturaModel->where('cfdiUUID', $uuid)->first();
+                // Buscar pagos y documentos relacionados
+                $pagos = $xml->xpath('//pago20:Pago');
 
-                    if ($factura) {
-                        // Verificar riesgo de duplicidad
-                        $existe = $pagoModel->where([
-                            'Folio_Factura' => $factura['Folio_Factura'],
-                            'Fecha_Pago'    => $fechaPago,
-                            'Monto_Pagado'  => $impPagado
-                        ])->first();
+                foreach ($pagos as $pago) {
+                    $fechaPago = explode('T', (string)$pago['FechaPago'])[0];
+                    $doctos = $pago->xpath('.//pago20:DoctoRelacionado');
 
-                        if ($existe) {
-                            $duplicates[] = [
+                    foreach ($doctos as $doc) {
+                        $uuid = (string)$doc['IdDocumento'];
+                        $impPagado = floatval((string)$doc['ImpPagado']);
+                        $impSaldoInsoluto = floatval((string)$doc['ImpSaldoInsoluto']);
+                        $folio = (string)$doc['Folio'];
+
+                        // Buscar factura por UUID
+                        $factura = $facturaModel->where('cfdiUUID', $uuid)->first();
+
+                        if ($factura) {
+                            // Verificar riesgo de duplicidad
+                            $existe = $pagoModel->where([
+                                'Folio_Factura' => $factura['Folio_Factura'],
+                                'Fecha_Pago'    => $fechaPago,
+                                'Monto_Pagado'  => $impPagado
+                            ])->first();
+
+                            if ($existe) {
+                                $duplicates[] = [
+                                    'Folio_Factura' => $factura['Folio_Factura'],
+                                    'Fecha_Pago'    => $fechaPago,
+                                    'Monto_Pagado'  => $impPagado,
+                                    'Referencia'    => 'XML Pago Relacionado a Folio ' . $folio
+                                ];
+                            }
+
+                            $pendingInserts[] = [
+                                'ID_Pago'       => 'PAG-' . uniqid(),
                                 'Folio_Factura' => $factura['Folio_Factura'],
                                 'Fecha_Pago'    => $fechaPago,
                                 'Monto_Pagado'  => $impPagado,
-                                'Referencia'    => 'XML Pago Relacionado a Folio ' . $folio
+                                'Referencia'    => 'XML Pago Relacionado a Folio ' . $folio,
+                                'impSaldoInsoluto' => $impSaldoInsoluto
                             ];
+                        } else {
+                            $logs[] = "Error de Conciliación en {$file->getName()}: El UUID {$uuid} no existe en el catálogo.";
                         }
-
-                        $pendingInserts[] = [
-                            'ID_Pago'       => 'PAG-' . uniqid(),
-                            'Folio_Factura' => $factura['Folio_Factura'],
-                            'Fecha_Pago'    => $fechaPago,
-                            'Monto_Pagado'  => $impPagado,
-                            'Referencia'    => 'XML Pago Relacionado a Folio ' . $folio,
-                            'impSaldoInsoluto' => $impSaldoInsoluto
-                        ];
-                    } else {
-                        // Test 4: Tolerancia a Errores (UUID Huérfano)
-                        $logs[] = "Error de Conciliación: El UUID {$uuid} no existe en el catálogo.";
                     }
                 }
+            } catch (\Exception $e) {
+                $logs[] = "Excepción al procesar {$file->getName()}: " . $e->getMessage();
             }
+        }
 
-            // Si hay riesgo de duplicados y no está forzado, detenerse y advertir
-            if (!empty($duplicates) && !$force) {
-                return $this->respond([
-                    'status'     => 'warning',
-                    'message'    => 'Existe riesgo de pago duplicado',
-                    'duplicates' => $duplicates
-                ]);
-            }
-
-            // Realizar inserciones
-            foreach ($pendingInserts as $ins) {
-                $pagoModel->insert([
-                    'ID_Pago'       => $ins['ID_Pago'],
-                    'Folio_Factura' => $ins['Folio_Factura'],
-                    'Fecha_Pago'    => $ins['Fecha_Pago'],
-                    'Monto_Pagado'  => $ins['Monto_Pagado'],
-                    'Referencia'    => $ins['Referencia']
-                ]);
-
-                // Actualizar estatus de factura
-                $estatus = ($ins['impSaldoInsoluto'] == 0.0) ? 'Pagada' : 'Pago Parcial';
-                $facturaModel->update($ins['Folio_Factura'], [
-                    'Estatus_Pago' => $estatus
-                ]);
-                
-                $conciliados++;
-            }
-
+        // Si hay riesgo de duplicados y no está forzado, detenerse y advertir
+        if (!empty($duplicates) && !$force) {
             return $this->respond([
-                'status'      => 'success',
-                'conciliados' => $conciliados,
-                'logs'        => $logs
+                'status'     => 'warning',
+                'message'    => 'Existe riesgo de pago duplicado',
+                'duplicates' => $duplicates
+            ]);
+        }
+
+        // Realizar inserciones
+        foreach ($pendingInserts as $ins) {
+            $pagoModel->insert([
+                'ID_Pago'       => $ins['ID_Pago'],
+                'Folio_Factura' => $ins['Folio_Factura'],
+                'Fecha_Pago'    => $ins['Fecha_Pago'],
+                'Monto_Pagado'  => $ins['Monto_Pagado'],
+                'Referencia'    => $ins['Referencia']
             ]);
 
-        } catch (\Exception $e) {
-            return $this->fail('Error al procesar la conciliación XML: ' . $e->getMessage());
+            // Actualizar estatus de factura
+            $estatus = ($ins['impSaldoInsoluto'] == 0.0) ? 'Pagada' : 'Pago Parcial';
+            $facturaModel->update($ins['Folio_Factura'], [
+                'Estatus_Pago' => $estatus
+            ]);
+            
+            $conciliados++;
         }
+
+        return $this->respond([
+            'status'      => 'success',
+            'conciliados' => $conciliados,
+            'logs'        => $logs
+        ]);
     }
 
     // ------------------------------------------------------------------------
