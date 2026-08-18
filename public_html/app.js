@@ -20,6 +20,8 @@ document.addEventListener('alpine:init', () => {
             Nombre_Fiscal: '',
             Nombre_Comercial: '',
             RFC: '',
+            Direccion: '',
+            CP: '',
             ID_Cotizacion: '',
             PO_Referencia: '',
             Monto_Autorizado: 0,
@@ -69,7 +71,7 @@ document.addEventListener('alpine:init', () => {
         isEdit: false,
         crudError: '',
 
-        clientForm: { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo' },
+        clientForm: { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo', Direccion: '', CP: '' },
         cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '' },
         devengadoForm: { ID_Captura: '', Fecha: '', ID_Cotizacion: '', Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0, Estatus_Facturacion: 'Pendiente' },
         facturaForm: { Folio_Factura: '', cfdiUUID: '', ID_Cliente: '', Fecha_Emision: '', Monto_Subtotal: 0, Monto_Total: 0, Moneda: 'Peso Mexicano', Fecha_Vencimiento: '', Estatus_Pago: 'Vigente' },
@@ -319,6 +321,23 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        onSuperCapturaClienteChange() {
+            const client = this.clientes.find(c => c.ID_Cliente === this.superCapturaForm.ID_Cliente);
+            if (client) {
+                this.superCapturaForm.Nombre_Fiscal = client.Nombre_Fiscal || '';
+                this.superCapturaForm.Nombre_Comercial = client.Nombre_Comercial || '';
+                this.superCapturaForm.RFC = client.RFC || '';
+                this.superCapturaForm.Direccion = client.Direccion || '';
+                this.superCapturaForm.CP = client.CP || '';
+            } else {
+                this.superCapturaForm.Nombre_Fiscal = '';
+                this.superCapturaForm.Nombre_Comercial = '';
+                this.superCapturaForm.RFC = '';
+                this.superCapturaForm.Direccion = '';
+                this.superCapturaForm.CP = '';
+            }
+        },
+
         superCapturaCreateCliente() {
             if (!this.superCapturaForm.ID_Cliente || !this.superCapturaForm.Nombre_Fiscal) {
                 alert('ID y Nombre Fiscal son obligatorios.');
@@ -329,6 +348,8 @@ document.addEventListener('alpine:init', () => {
             form.append('Nombre_Fiscal', this.superCapturaForm.Nombre_Fiscal);
             form.append('Nombre_Comercial', this.superCapturaForm.Nombre_Comercial || this.superCapturaForm.Nombre_Fiscal);
             form.append('RFC', this.superCapturaForm.RFC || 'XAXX010101000');
+            form.append('Direccion', this.superCapturaForm.Direccion || '');
+            form.append('CP', this.superCapturaForm.CP || '');
             form.append('Estatus', 'Activo');
 
             fetch('/api/clientes', { method: 'POST', body: form })
@@ -337,6 +358,41 @@ document.addEventListener('alpine:init', () => {
                 this.loadAllData();
                 alert('Cliente creado y seleccionado.');
                 this.superCapturaStep = 2;
+            });
+        },
+
+        uploadClientXML(event) {
+            const file = (event.target && event.target.files) ? event.target.files[0] : (event.dataTransfer && event.dataTransfer.files ? event.dataTransfer.files[0] : null);
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('xml_file', file);
+
+            fetch('/api/admin/parse-client-xml', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.message || 'Error de lectura XML'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                this.superCapturaForm.Nombre_Fiscal = data.Nombre;
+                this.superCapturaForm.Nombre_Comercial = data.Nombre;
+                this.superCapturaForm.RFC = data.RFC;
+                this.superCapturaForm.CP = data.CodigoPostal || '';
+                this.superCapturaForm.Direccion = data.Direccion || '';
+                
+                // Auto generate CLI ID if empty
+                if (!this.superCapturaForm.ID_Cliente) {
+                    this.superCapturaForm.ID_Cliente = 'CLI-' + data.RFC.slice(0, 4) + Math.floor(100 + Math.random() * 900);
+                }
+                alert('XML leído con éxito. Datos del cliente extraídos correctamente.');
+            })
+            .catch(err => {
+                alert('Error al leer el XML de cliente: ' + err.message);
             });
         },
 
@@ -379,7 +435,7 @@ document.addEventListener('alpine:init', () => {
                 alert('¡Super Captura completada con éxito!');
                 // Reset form
                 this.superCapturaForm = {
-                    ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '',
+                    ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Direccion: '', CP: '',
                     ID_Cotizacion: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0,
                     ID_Captura: '', Fecha: new Date().toISOString().split('T')[0], Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0
                 };
@@ -397,7 +453,7 @@ document.addEventListener('alpine:init', () => {
             this.crudError = '';
             
             if (type === 'cliente') {
-                this.clientForm = { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo' };
+                this.clientForm = { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo', Direccion: '', CP: '' };
             } else if (type === 'cotizacion') {
                 this.cotizacionForm = { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '' };
             } else if (type === 'devengado') {

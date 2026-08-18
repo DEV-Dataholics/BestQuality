@@ -17,10 +17,17 @@ class ApiController extends BaseController
     {
         parent::initController($request, $response, $logger);
         
-        // Auto-alter column Evidencia if it doesn't exist
         $db = \Config\Database::connect();
+        // Auto-alter column Evidencia if it doesn't exist
         if (!$db->fieldExists('Evidencia', 'COTIZACIONES')) {
             $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Evidencia TEXT DEFAULT NULL");
+        }
+        // Auto-alter CAT_CLIENTES
+        if (!$db->fieldExists('Direccion', 'CAT_CLIENTES')) {
+            $db->query("ALTER TABLE CAT_CLIENTES ADD COLUMN Direccion VARCHAR(255) DEFAULT NULL");
+        }
+        if (!$db->fieldExists('CP', 'CAT_CLIENTES')) {
+            $db->query("ALTER TABLE CAT_CLIENTES ADD COLUMN CP VARCHAR(10) DEFAULT NULL");
         }
     }
 
@@ -943,6 +950,57 @@ class ApiController extends BaseController
             'status' => 'success',
             'message' => 'Base de datos sembrada con datos de prueba con éxito!'
         ]);
+    }
+
+    public function parseClientXML()
+    {
+        $file = $this->request->getFile('xml_file');
+        if (!$file || !$file->isValid()) {
+            return $this->fail('Archivo XML no válido o faltante.');
+        }
+
+        try {
+            $xmlString = file_get_contents($file->getTempName());
+            libxml_use_internal_errors(true);
+            $xml = simplexml_load_string($xmlString);
+            if ($xml === false) {
+                return $this->fail('El archivo XML está mal formado.');
+            }
+
+            // Register namespacing
+            $xml->registerXPathNamespace('cfdi', 'http://www.sat.gob.mx/cfdi/4');
+            $xml->registerXPathNamespace('cfdi3', 'http://www.sat.gob.mx/cfdi/3');
+
+            // Try CFDI 4.0 first, then 3.3
+            $receptor = $xml->xpath('//cfdi:Receptor');
+            if (empty($receptor)) {
+                $receptor = $xml->xpath('//cfdi3:Receptor');
+            }
+
+            if (empty($receptor)) {
+                return $this->fail('No se encontró el nodo Receptor en el XML.');
+            }
+
+            $node = $receptor[0];
+            $rfc = (string)$node['Rfc'];
+            $nombre = (string)$node['Nombre'];
+            
+            // In CFDI 4.0: DomicilioFiscalReceptor contains the zip code
+            $cp = (string)$node['DomicilioFiscalReceptor'];
+            if (!$cp) {
+                $cp = (string)$node['DomicilioFiscalCve']; // fallback or legacy
+            }
+            
+            return $this->respond([
+                'Nombre' => $nombre,
+                'RFC' => $rfc,
+                'CodigoPostal' => $cp,
+                'Direccion' => $cp ? "CP: $cp" : ''
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->fail('Error al procesar el XML de cliente: ' . $e->getMessage());
+        }
     }
 }
 
