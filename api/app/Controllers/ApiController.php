@@ -739,8 +739,11 @@ class ApiController extends BaseController
             return $this->fail('El archivo debe ser una imagen válida (jpeg, png, gif, webp).');
         }
 
-        // Save to public uploads
-        $uploadPath = ROOTPATH . '../public_html/uploads/';
+        // Save to public uploads (dynamic fallback for local vs production)
+        $uploadPath = ROOTPATH . '../uploads/';
+        if (is_dir(ROOTPATH . '../public_html/')) {
+            $uploadPath = ROOTPATH . '../public_html/uploads/';
+        }
         if (!is_dir($uploadPath)) {
             mkdir($uploadPath, 0777, true);
         }
