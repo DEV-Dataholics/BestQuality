@@ -1007,7 +1007,8 @@
                                 'bg-emerald-50 text-emerald-700': fac.Estatus_Pago === 'Pagada',
                                 'bg-blue-50 text-bqs': fac.Estatus_Pago === 'Vigente',
                                 'bg-red-50 text-red-700': fac.Estatus_Pago === 'Vencida',
-                                'bg-amber-50 text-amber-700': fac.Estatus_Pago === 'Pago Parcial'
+                                'bg-amber-50 text-amber-700': fac.Estatus_Pago === 'Pago Parcial',
+                                'bg-rose-100 text-rose-800 border border-rose-200': fac.Estatus_Pago === 'Cancelada'
                               }" class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5" x-text="fac.Estatus_Pago"></span>
                             </td>
                             <td class="py-3 text-right space-x-2">
@@ -1272,15 +1273,28 @@
                     'bg-emerald-50 text-emerald-700': selectedFactura.Estatus_Pago === 'Pagada',
                     'bg-blue-50 text-bqs': selectedFactura.Estatus_Pago === 'Vigente',
                     'bg-red-50 text-red-700': selectedFactura.Estatus_Pago === 'Vencida',
-                    'bg-amber-50 text-amber-700': selectedFactura.Estatus_Pago === 'Pago Parcial'
+                    'bg-amber-50 text-amber-700': selectedFactura.Estatus_Pago === 'Pago Parcial',
+                    'bg-rose-100 text-rose-800 border border-rose-200': selectedFactura.Estatus_Pago === 'Cancelada'
                   }" class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" x-text="selectedFactura.Estatus_Pago"></span>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-6 text-sm">
                   <div>
                     <span class="text-slate-400 block text-xs">Fecha Emisión</span>
                     <strong class="text-slate-800" x-text="selectedFactura.Fecha_Emision"></strong>
                   </div>
+                  <template x-if="selectedFactura.ID_Cotizacion">
+                    <div>
+                      <span class="text-slate-400 block text-xs">Cotización Asociada</span>
+                      <strong class="text-indigo-600 font-mono" x-text="selectedFactura.ID_Cotizacion"></strong>
+                    </div>
+                  </template>
+                  <template x-if="!selectedFactura.ID_Cotizacion">
+                    <div>
+                      <span class="text-slate-400 block text-xs">Cotización Asociada</span>
+                      <strong class="text-slate-400 font-mono">Ninguna</strong>
+                    </div>
+                  </template>
                   <div>
                     <span class="text-slate-400 block text-xs">Fecha Vencimiento</span>
                     <strong class="text-slate-800 font-mono" x-text="selectedFactura.Fecha_Vencimiento"></strong>

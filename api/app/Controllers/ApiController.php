@@ -39,6 +39,9 @@ class ApiController extends BaseController
         if (!$db->fieldExists('Notas_Politicas', 'COTIZACIONES')) {
             $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Notas_Politicas TEXT DEFAULT NULL");
         }
+        if (!$db->fieldExists('ID_Cotizacion', 'FACTURAS')) {
+            $db->query("ALTER TABLE FACTURAS ADD COLUMN ID_Cotizacion VARCHAR(20) DEFAULT NULL");
+        }
     }
 
     protected $bqsRfc = "BQS120813DF5";
@@ -303,6 +306,33 @@ class ApiController extends BaseController
             $montoSub = floatval(trim($data['Subtotal'] ?? '0.00'));
             $moneda = trim($data['Moneda'] ?? 'Peso Mexicano');
 
+            // Extract Remision code and match with Cotizacion
+            $concepto = trim($data['Primer Concepto'] ?? '');
+            $idCotizacion = null;
+            if (preg_match('/REMISION\s+([0-9]+(?:\/[0-9]+)?)/i', $concepto, $matches)) {
+                $fullRem = $matches[1];
+                $cleanRem = explode('/', $fullRem)[0];
+                
+                $db = \Config\Database::connect();
+                $cot = $db->table('COTIZACIONES')
+                    ->groupStart()
+                        ->like('ID_Cotizacion', $cleanRem)
+                        ->orLike('PO_Referencia', $cleanRem)
+                        ->orLike('ID_Cotizacion', $fullRem)
+                        ->orLike('PO_Referencia', $fullRem)
+                    ->groupEnd()
+                    ->get()
+                    ->getRowArray();
+                if ($cot) {
+                    $idCotizacion = $cot['ID_Cotizacion'];
+                }
+            }
+
+            $estatusPago = 'Vigente';
+            if ($montoTotal == 0.00 || trim($data['Estado'] ?? '') === 'Cancelado') {
+                $estatusPago = 'Cancelada';
+            }
+
             // Insertar o actualizar factura
             $facturaData = [
                 'Folio_Factura'     => 'F-' . $folio,
@@ -313,7 +343,8 @@ class ApiController extends BaseController
                 'Monto_Total'       => $montoTotal,
                 'Moneda'            => $moneda,
                 'Fecha_Vencimiento' => $vencimiento,
-                'Estatus_Pago'      => 'Vigente'
+                'Estatus_Pago'      => $estatusPago,
+                'ID_Cotizacion'     => $idCotizacion
             ];
 
             if ($facturaModel->find('F-' . $folio)) {
