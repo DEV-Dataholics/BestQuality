@@ -550,9 +550,29 @@
                         <input type="number" step="0.01" x-model="superCapturaForm.Monto_Autorizado" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 font-mono">
                       </div>
                     </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">Número de Parte</label>
+                        <input type="text" x-model="superCapturaForm.Numero_Parte" placeholder="Número de Parte" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                      </div>
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">Planta</label>
+                        <input type="text" x-model="superCapturaForm.Planta" placeholder="Planta" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">PO / Referencia de Compra</label>
+                        <input type="text" x-model="superCapturaForm.PO_Referencia" placeholder="PO-12345" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                      </div>
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">Piezas Autorizadas</label>
+                        <input type="number" x-model="superCapturaForm.Piezas_Autorizadas" placeholder="Piezas Autorizadas" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 font-mono">
+                      </div>
+                    </div>
                     <div>
-                      <label class="text-xs font-semibold text-slate-600">PO / Referencia de Compra</label>
-                      <input type="text" x-model="superCapturaForm.PO_Referencia" placeholder="PO-12345" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                      <label class="text-xs font-semibold text-slate-600">Notas / Políticas y Condiciones</label>
+                      <textarea x-model="superCapturaForm.Notas_Politicas" rows="3" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 focus:outline-none"></textarea>
                     </div>
                     <button type="button" @click="superCapturaCreateCotizacion()" class="w-full rounded-xl bg-slate-800 hover:bg-slate-900 py-2.5 text-xs font-semibold text-white">
                       Registrar Cotización y Continuar
@@ -853,6 +873,7 @@
                               </template>
                             </td>
                             <td class="py-3 text-right space-x-2">
+                              <button @click="exportQuoteToPDF(cot)" class="text-indigo-600 hover:text-indigo-700 font-medium mr-1">PDF</button>
                               <button @click="openEditModal('cotizacion', cot)" class="text-bqs hover:text-bqs-hover font-medium">Editar</button>
                               <button @click="deleteItem('cotizacion', cot.ID_Cotizacion)" class="text-red-600 hover:text-red-700 font-medium">Borrar</button>
                             </td>
@@ -1462,6 +1483,18 @@
           <input type="number" x-model="cotizacionForm.Piezas_Autorizadas" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
         </div>
         <div>
+          <label class="block text-sm font-semibold text-slate-700">Número de Parte</label>
+          <input type="text" x-model="cotizacionForm.Numero_Parte" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none" placeholder="Part Number / Ref">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Planta</label>
+          <input type="text" x-model="cotizacionForm.Planta" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none" placeholder="Planta de producción">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700">Notas / Políticas y Condiciones</label>
+          <textarea x-model="cotizacionForm.Notas_Politicas" rows="3" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none"></textarea>
+        </div>
+        <div>
           <label class="block text-sm font-semibold text-slate-700">Estatus</label>
           <select x-model="cotizacionForm.Estatus" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
             <option value="Pendiente">Pendiente</option>
@@ -1653,6 +1686,106 @@
         <button @click="showModal = null" class="rounded-xl border border-slate-200 py-2 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
         <button @click="saveItem('pago')" class="rounded-xl bg-bqs hover:bg-bqs-hover py-2 px-5 text-sm font-semibold text-white">Guardar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Contenedor Oculto para Generación de PDF de Cotizaciones -->
+  <div style="display: none;">
+    <div id="quote-pdf-template" style="padding: 20px; font-family: sans-serif; color: #334155; font-size: 13px;" x-if="selectedQuoteForPDF">
+      <template x-if="selectedQuoteForPDF">
+        <div style="padding: 10px;">
+          <!-- Header -->
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 15px; margin-bottom: 20px;">
+            <div>
+              <h1 style="font-size: 22px; font-weight: bold; color: #1e293b; margin: 0;">Best Quality Solutions</h1>
+              <p style="margin: 3px 0 0 0; font-size: 11px; color: #64748b;">S.A. de C.V. | RFC: BQS120813DF5</p>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">Servicios de Calidad, Sorteo e Inspección de Componentes</p>
+            </div>
+            <div style="text-align: right;">
+              <h2 style="font-size: 16px; font-weight: bold; color: #4338ca; margin: 0;">COTIZACIÓN</h2>
+              <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: bold; font-family: monospace; color: #1e293b;" x-text="selectedQuoteForPDF.ID_Cotizacion"></p>
+              <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;" x-text="'Fecha: ' + new Date().toLocaleDateString()"></p>
+            </div>
+          </div>
+
+          <!-- Info columns -->
+          <div style="display: flex; justify-content: space-between; margin-bottom: 25px; gap: 20px;">
+            <div style="flex: 1; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">
+              <h3 style="margin-top: 0; font-size: 12px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">Cliente</h3>
+              <p style="margin: 4px 0; font-weight: bold;" x-text="selectedQuoteForPDFClient.Nombre_Fiscal || selectedQuoteForPDFClient.Nombre_Comercial"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="'RFC: ' + selectedQuoteForPDFClient.RFC"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="'Dirección: ' + (selectedQuoteForPDFClient.Direccion || 'N/A')"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="'C.P.: ' + (selectedQuoteForPDFClient.CP || 'N/A')"></p>
+            </div>
+            <div style="flex: 1; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">
+              <h3 style="margin-top: 0; font-size: 12px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">Detalles de la Oferta</h3>
+              <p style="margin: 4px 0; font-size: 11px;" x-text="'Planta: ' + (selectedQuoteForPDF.Planta || 'N/A')"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="'Número de Parte: ' + (selectedQuoteForPDF.Numero_Parte || 'N/A')"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="'Orden Compra (PO): ' + (selectedQuoteForPDF.PO_Referencia || 'Pendiente')"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="'Estatus: ' + selectedQuoteForPDF.Estatus"></p>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 12px;">
+            <thead>
+              <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left;">
+                <th style="padding: 10px; font-weight: bold; color: #475569;">Concepto / Descripción</th>
+                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;">Cantidad (Pzs)</th>
+                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;">P.U. Estimado</th>
+                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;">Monto Autorizado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 12px 10px; font-weight: 500;">
+                  Servicio de Inspección, Control y Sorteo de Calidad
+                  <span style="display: block; font-size: 10px; color: #94a3b8; margin-top: 3px;" x-text="'No. Parte: ' + (selectedQuoteForPDF.Numero_Parte || 'N/A') + ' | Planta: ' + (selectedQuoteForPDF.Planta || 'N/A')"></span>
+                </td>
+                <td style="padding: 12px 10px; text-align: right; font-family: monospace;" x-text="selectedQuoteForPDF.Piezas_Autorizadas || 0"></td>
+                <td style="padding: 12px 10px; text-align: right; font-family: monospace;" x-text="formatCurrency((selectedQuoteForPDF.Monto_Autorizado / (selectedQuoteForPDF.Piezas_Autorizadas || 1)))"></td>
+                <td style="padding: 12px 10px; text-align: right; font-family: monospace; font-weight: bold;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado)"></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Totals -->
+          <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
+            <div style="width: 250px; border-top: 2px solid #e2e8f0; padding-top: 10px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px;">
+                <span>Subtotal:</span>
+                <span style="font-family: monospace;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado)"></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px;">
+                <span>I.V.A. (16%):</span>
+                <span style="font-family: monospace;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado * 0.16)"></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; color: #1e293b; border-top: 1px solid #f1f5f9; padding-top: 6px;">
+                <span>Total (MXN):</span>
+                <span style="font-family: monospace;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado * 1.16)"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes & Terms -->
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; font-size: 10px; line-height: 1.5; color: #64748b;">
+            <h4 style="margin-top: 0; margin-bottom: 8px; font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase;">Notas, Políticas y Condiciones</h4>
+            <div style="white-space: pre-wrap;" x-text="selectedQuoteForPDF.Notas_Politicas || '-' "></div>
+          </div>
+
+          <!-- Signatures -->
+          <div style="display: flex; justify-content: space-around; margin-top: 50px; text-align: center; font-size: 11px;">
+            <div style="width: 200px; border-top: 1px solid #cbd5e1; padding-top: 8px;">
+              <p style="margin: 0; font-weight: bold; color: #475569;">Best Quality Solutions</p>
+              <p style="margin: 2px 0 0 0; color: #94a3b8;">Representante Autorizado</p>
+            </div>
+            <div style="width: 200px; border-top: 1px solid #cbd5e1; padding-top: 8px;">
+              <p style="margin: 0; font-weight: bold; color: #475569;" x-text="selectedQuoteForPDFClient.Nombre_Fiscal || selectedQuoteForPDFClient.Nombre_Comercial"></p>
+              <p style="margin: 2px 0 0 0; color: #94a3b8;">Aceptación de Cliente</p>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 

@@ -29,6 +29,16 @@ class ApiController extends BaseController
         if (!$db->fieldExists('CP', 'CAT_CLIENTES')) {
             $db->query("ALTER TABLE CAT_CLIENTES ADD COLUMN CP VARCHAR(10) DEFAULT NULL");
         }
+        // Auto-alter COTIZACIONES columns
+        if (!$db->fieldExists('Numero_Parte', 'COTIZACIONES')) {
+            $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Numero_Parte VARCHAR(100) DEFAULT NULL");
+        }
+        if (!$db->fieldExists('Planta', 'COTIZACIONES')) {
+            $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Planta VARCHAR(100) DEFAULT NULL");
+        }
+        if (!$db->fieldExists('Notas_Politicas', 'COTIZACIONES')) {
+            $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Notas_Politicas TEXT DEFAULT NULL");
+        }
     }
 
     protected $bqsRfc = "BQS120813DF5";

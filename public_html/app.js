@@ -71,8 +71,13 @@ document.addEventListener('alpine:init', () => {
         isEdit: false,
         crudError: '',
 
+        DEFAULT_NOTAS: "1. Condiciones de Pago: No se aceptan cheques, pura transferencia bancaria interbancaria (SPEI).\n2. Garantía y Calidad: Best Quality Solutions garantiza que todos los servicios de sorteo e inspección de calidad se realizan bajo estrictos estándares industriales. Cualquier reclamación sobre el servicio debe presentarse dentro de las 48 horas posteriores a la realización del sorteo.\n3. Facturación: Las facturas se emitirán de acuerdo con el trabajo devengado y los reportes diarios de inspección validados.",
+
+        selectedQuoteForPDF: null,
+        selectedQuoteForPDFClient: null,
+
         clientForm: { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo', Direccion: '', CP: '' },
-        cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '' },
+        cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '', Numero_Parte: '', Planta: '', Notas_Politicas: '' },
         devengadoForm: { ID_Captura: '', Fecha: '', ID_Cotizacion: '', Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0, Estatus_Facturacion: 'Pendiente' },
         facturaForm: { Folio_Factura: '', cfdiUUID: '', ID_Cliente: '', Fecha_Emision: '', Monto_Subtotal: 0, Monto_Total: 0, Moneda: 'Peso Mexicano', Fecha_Vencimiento: '', Estatus_Pago: 'Vigente' },
         pagoForm: { ID_Pago: '', Folio_Factura: '', Fecha_Pago: '', Monto_Pagado: 0, Referencia: '' },
@@ -295,6 +300,12 @@ document.addEventListener('alpine:init', () => {
                     alert('Debes seleccionar o crear un cliente.');
                     return;
                 }
+                if (!this.superCapturaForm.ID_Cotizacion) {
+                    this.superCapturaForm.ID_Cotizacion = this.generateNextQuoteFolio();
+                }
+                if (!this.superCapturaForm.Notas_Politicas) {
+                    this.superCapturaForm.Notas_Politicas = this.DEFAULT_NOTAS;
+                }
                 this.superCapturaStep = 2;
             } else if (this.superCapturaStep === 2) {
                 if (!this.superCapturaForm.ID_Cotizacion) {
@@ -407,6 +418,9 @@ document.addEventListener('alpine:init', () => {
             form.append('PO_Referencia', this.superCapturaForm.PO_Referencia || '');
             form.append('Monto_Autorizado', this.superCapturaForm.Monto_Autorizado);
             form.append('Piezas_Autorizadas', this.superCapturaForm.Piezas_Autorizadas || 0);
+            form.append('Numero_Parte', this.superCapturaForm.Numero_Parte || '');
+            form.append('Planta', this.superCapturaForm.Planta || '');
+            form.append('Notas_Politicas', this.superCapturaForm.Notas_Politicas || this.DEFAULT_NOTAS);
             form.append('Estatus', 'Aprobada');
 
             fetch('/api/cotizaciones', { method: 'POST', body: form })
@@ -444,6 +458,37 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
+        generateNextQuoteFolio() {
+            const numericIds = this.cotizaciones
+                .map(c => c.ID_Cotizacion)
+                .filter(id => id && id.startsWith('COT-'))
+                .map(id => parseInt(id.replace('COT-', ''), 10))
+                .filter(num => !isNaN(num));
+            const maxNum = numericIds.length > 0 ? Math.max(...numericIds) : 0;
+            return 'COT-' + String(maxNum + 1).padStart(4, '0');
+        },
+
+        exportQuoteToPDF(cot) {
+            this.selectedQuoteForPDF = cot;
+            const client = this.clientes.find(c => c.ID_Cliente === cot.ID_Cliente);
+            this.selectedQuoteForPDFClient = client || { Nombre_Fiscal: 'Cliente Desconocido', RFC: '', Direccion: '', CP: '' };
+            
+            this.$nextTick(() => {
+                const element = document.getElementById('quote-pdf-template');
+                if (!element) return;
+                
+                const opt = {
+                    margin:       10,
+                    filename:     `Cotizacion_${cot.ID_Cotizacion}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2 },
+                    jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' }
+                };
+                
+                html2pdf().from(element).set(opt).save();
+            });
+        },
+
         // ------------------------------------------------------------------------
         // CRUD ACTIONS
         // ------------------------------------------------------------------------
@@ -455,7 +500,19 @@ document.addEventListener('alpine:init', () => {
             if (type === 'cliente') {
                 this.clientForm = { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo', Direccion: '', CP: '' };
             } else if (type === 'cotizacion') {
-                this.cotizacionForm = { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '' };
+                const nextFolio = this.generateNextQuoteFolio();
+                this.cotizacionForm = { 
+                    ID_Cotizacion: nextFolio, 
+                    ID_Cliente: '', 
+                    PO_Referencia: '', 
+                    Monto_Autorizado: 0, 
+                    Piezas_Autorizadas: 0, 
+                    Estatus: 'Pendiente', 
+                    Evidencia: '', 
+                    Numero_Parte: '', 
+                    Planta: '', 
+                    Notas_Politicas: this.DEFAULT_NOTAS 
+                };
             } else if (type === 'devengado') {
                 this.devengadoForm = { ID_Captura: '', Fecha: new Date().toISOString().split('T')[0], ID_Cotizacion: '', Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0, Estatus_Facturacion: 'Pendiente' };
             } else if (type === 'factura') {
