@@ -542,8 +542,8 @@
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">O Crear una Nueva Cotización</span>
                     <div class="grid grid-cols-2 gap-4">
                       <div>
-                        <label class="text-xs font-semibold text-slate-600">ID Cotización</label>
-                        <input type="text" x-model="superCapturaForm.ID_Cotizacion" placeholder="COT-005" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                        <label class="text-xs font-semibold text-slate-600">ID Cotización (Autogenerado)</label>
+                        <input type="text" x-model="superCapturaForm.ID_Cotizacion" disabled class="block w-full rounded-xl border border-slate-100 bg-slate-50 py-2.5 px-3 text-xs mt-1 font-mono font-bold text-slate-500">
                       </div>
                       <div>
                         <label class="text-xs font-semibold text-slate-600">Monto Autorizado</label>
@@ -557,7 +557,14 @@
                       </div>
                       <div>
                         <label class="text-xs font-semibold text-slate-600">Planta</label>
-                        <input type="text" x-model="superCapturaForm.Planta" placeholder="Planta" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1">
+                        <select x-model="superCapturaForm.Planta" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 focus:outline-none bg-white">
+                          <option value="">-- Elige Planta --</option>
+                          <template x-for="p in plantas.filter(pl => pl.ID_Cliente === superCapturaForm.ID_Cliente)">
+                            <option :value="p.Nombre_Planta" x-text="p.Nombre_Planta"></option>
+                          </template>
+                          <option value="NEW_PLANTA">+ Capturar Nueva Planta...</option>
+                        </select>
+                        <input x-show="superCapturaForm.Planta === 'NEW_PLANTA' || plantas.filter(pl => pl.ID_Cliente === superCapturaForm.ID_Cliente).length === 0" type="text" x-model="superCapturaForm.Planta_Nueva" placeholder="Escribe el nombre de la planta" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-2">
                       </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
@@ -651,47 +658,171 @@
             <!-- PAGE: POR FACTURAR -->
             <div x-show="activePage === 'porfacturar'" class="space-y-6">
               <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                <div class="flex flex-1 gap-4 w-full">
-                  <input type="text" x-model="filters.porfacturar.search" placeholder="Buscar por Cotización, Cliente..." class="block w-full max-w-md rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900">
-                  <select x-model="filters.porfacturar.cliente" class="block w-48 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
-                    <option value="">Cliente: Todos</option>
-                    <template x-for="c in clientes">
-                      <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial"></option>
-                    </template>
-                  </select>
+                <div class="flex flex-1 flex-wrap gap-4 w-full items-center justify-between">
+                  <div class="flex gap-4 items-center flex-1">
+                    <input type="text" x-model="filters.porfacturar.search" placeholder="Buscar por Cotización, Cliente..." class="block w-full max-w-md rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-900">
+                    <select x-model="filters.porfacturar.cliente" class="block w-48 rounded-xl border border-slate-200 py-2.5 px-4 text-sm text-slate-700">
+                      <option value="">Cliente: Todos</option>
+                      <template x-for="c in clientes">
+                        <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial"></option>
+                      </template>
+                    </select>
+                  </div>
+                  
+                  <!-- Toggle Vista Mode -->
+                  <div class="inline-flex rounded-xl p-1 bg-slate-100 border border-slate-200">
+                    <button @click="porFacturarViewMode = 'tabla'" :class="porFacturarViewMode === 'tabla' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-500 hover:text-slate-900'" class="px-3 py-1.5 text-xs rounded-lg transition duration-150">
+                      Vista Tabla
+                    </button>
+                    <button @click="porFacturarViewMode = 'tarjetas'" :class="porFacturarViewMode === 'tarjetas' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-500 hover:text-slate-900'" class="px-3 py-1.5 text-xs rounded-lg transition duration-150">
+                      Vista Tarjetas
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+              <!-- VISTA TABLA -->
+              <div x-show="porFacturarViewMode === 'tabla'" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-slate-200">
-                  <h3 class="font-bold text-slate-800">Servicios Devengados Pendientes de Facturación</h3>
-                  <p class="text-xs text-slate-500">Trabajo realizado por sorteos de inspección</p>
+                  <h3 class="font-bold text-slate-800">Servicios Devengados Aprobados Pendientes de Facturación (Tabla)</h3>
+                  <p class="text-xs text-slate-500">Carga el XML de la factura para transicionar a "Por Cobrar"</p>
                 </div>
                 <div class="p-6">
                   <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                       <thead>
                         <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
-                          <th class="pb-3">Cotización</th>
+                          <th class="pb-3">Cotización / Remisión</th>
                           <th class="pb-3">Cliente</th>
-                          <th class="pb-3 text-right">Total Pendiente</th>
+                          <th class="pb-3">Planta / PN</th>
+                          <th class="pb-3 text-right">Monto</th>
+                          <th class="pb-3 text-center">Estatus</th>
+                          <th class="pb-3">Evidencia</th>
+                          <th class="pb-3 text-center">Factura XML</th>
+                          <th class="pb-3 text-right">Acciones</th>
                         </tr>
                       </thead>
                       <tbody class="divide-y divide-slate-100">
                         <template x-for="item in getFilteredPorFacturar()">
                           <tr>
-                            <td class="py-3 font-mono font-medium text-slate-900" x-text="item.ID_Cotizacion"></td>
+                            <td class="py-3 font-mono font-medium text-slate-900">
+                              <span x-text="item.ID_Cotizacion"></span>
+                              <div class="text-xs text-emerald-700 font-semibold mt-0.5" x-text="item.Numero_Remision || 'Sin Remisión'"></div>
+                            </td>
                             <td class="py-3 text-slate-700" x-text="item.Cliente"></td>
-                            <td class="py-3 text-right font-bold text-slate-900 font-mono" x-text="formatCurrency(item.Pendiente)"></td>
+                            <td class="py-3 text-xs text-slate-500">
+                              <div x-text="'Planta: ' + (item.Planta || 'N/A')"></div>
+                              <div x-text="'P/N: ' + (item.Numero_Parte || 'N/A')"></div>
+                            </td>
+                            <td class="py-3 text-right font-bold text-slate-900 font-mono" x-text="formatCurrency(item.Monto_Autorizado)"></td>
+                            <td class="py-3 text-center">
+                              <select :value="item.Estatus" @change="updateQuoteStatus(item.ID_Cotizacion, $event.target.value)" class="rounded-lg border border-slate-200 text-xs py-1 px-2 focus:outline-none bg-white">
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Aprobada">Aprobada</option>
+                                <option value="Cancelada">Cancelada</option>
+                              </select>
+                            </td>
+                            <td class="py-3">
+                              <div class="flex items-center gap-2">
+                                <template x-if="item.Evidencia">
+                                  <a :href="'/' + item.Evidencia" target="_blank" class="inline-flex rounded-lg bg-indigo-50 hover:bg-indigo-100 p-1.5 text-indigo-600 transition">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                  </a>
+                                </template>
+                                <label class="inline-flex cursor-pointer items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 p-1.5 text-slate-600 border border-slate-200 transition">
+                                  <input type="file" @change="uploadQuoteEvidenceFile($event, item.ID_Cotizacion)" accept="image/*,application/pdf" class="hidden">
+                                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                </label>
+                              </div>
+                            </td>
+                            <td class="py-3 text-center">
+                              <label class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-indigo-50 hover:bg-indigo-100 py-1.5 px-3 text-xs font-semibold text-bqs transition border border-slate-200">
+                                <input type="file" @change="uploadQuoteInvoiceXML($event, item.ID_Cotizacion)" accept=".xml" class="hidden">
+                                Subir XML
+                              </label>
+                            </td>
+                            <td class="py-3 text-right">
+                              <button @click="exportQuoteToPDF(item)" class="inline-flex items-center gap-1 text-xs text-indigo-600 font-bold hover:underline">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                PDF
+                              </button>
+                            </td>
                           </tr>
                         </template>
                         <template x-if="getFilteredPorFacturar().length === 0">
                           <tr>
-                            <td colspan="3" class="py-6 text-center text-slate-400">No se encontraron registros pendientes.</td>
+                            <td colspan="8" class="py-6 text-center text-slate-400">No se encontraron registros pendientes.</td>
                           </tr>
                         </template>
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- VISTA TARJETAS -->
+              <div x-show="porFacturarViewMode === 'tarjetas'" class="space-y-6">
+                <template x-for="clt in [...new Set(getFilteredPorFacturar().map(item => item.Cliente))]">
+                  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
+                    <h4 class="font-bold text-slate-900 border-b pb-2 text-base flex justify-between items-center">
+                      <span x-text="clt"></span>
+                      <span class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full font-semibold" x-text="getFilteredPorFacturar().filter(item => item.Cliente === clt).length + ' pendientes'"></span>
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <template x-for="item in getFilteredPorFacturar().filter(item => item.Cliente === clt)">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-4">
+                          <div>
+                            <div class="flex justify-between items-start">
+                              <span class="font-mono text-sm font-bold text-slate-800" x-text="item.ID_Cotizacion"></span>
+                              <select :value="item.Estatus" @change="updateQuoteStatus(item.ID_Cotizacion, $event.target.value)" class="rounded-lg border border-slate-200 text-xs py-1 px-1.5 focus:outline-none bg-white">
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Aprobada">Aprobada</option>
+                                <option value="Cancelada">Cancelada</option>
+                              </select>
+                            </div>
+                            <div class="text-xs text-emerald-700 font-bold font-mono mt-1" x-text="item.Numero_Remision || 'Sin Remisión'"></div>
+                            
+                            <div class="mt-3 space-y-1.5 text-xs text-slate-600">
+                              <div x-text="'Planta: ' + (item.Planta || 'N/A')"></div>
+                              <div x-text="'P/N: ' + (item.Numero_Parte || 'N/A')"></div>
+                              <div class="text-sm font-bold text-slate-900 mt-2 font-mono" x-text="'Monto: ' + formatCurrency(item.Monto_Autorizado)"></div>
+                            </div>
+                          </div>
+                          
+                          <div class="border-t pt-3 flex flex-wrap gap-2 justify-between items-center">
+                            <button @click="exportQuoteToPDF(item)" class="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1">
+                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                              PDF
+                            </button>
+
+                            <div class="flex items-center gap-1.5">
+                              <template x-if="item.Evidencia">
+                                <a :href="'/' + item.Evidencia" target="_blank" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold">Ver</a>
+                              </template>
+                              <label class="cursor-pointer text-slate-500 hover:text-slate-700 text-xs font-bold flex items-center gap-0.5">
+                                <input type="file" @change="uploadQuoteEvidenceFile($event, item.ID_Cotizacion)" accept="image/*,application/pdf" class="hidden">
+                                <span>Subir Evidencia</span>
+                              </label>
+                            </div>
+
+                            <label class="cursor-pointer bg-bqs text-white text-[11px] font-bold py-1 px-2 rounded-lg hover:bg-bqs-hover transition">
+                              <input type="file" @change="uploadQuoteInvoiceXML($event, item.ID_Cotizacion)" accept=".xml" class="hidden">
+                              Vincular XML
+                            </label>
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+                <template x-if="getFilteredPorFacturar().length === 0">
+                  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 text-center text-slate-400">
+                    No se encontraron registros pendientes.
+                  </div>
+                </template>
+              </div>
+            </div>>
                   </div>
                 </div>
               </div>
@@ -1416,6 +1547,33 @@
   <!-- ========================================================================= -->
   <!-- MODALS CRUD -->
   <!-- ========================================================================= -->
+
+  <!-- MODAL: POST CAPTURE PDF (TKT-004) -->
+  <div x-show="showModal === 'post_capture_pdf'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 border border-slate-200 shadow-xl space-y-6 text-center">
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 text-emerald-600">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      
+      <div class="space-y-2">
+        <h3 class="text-xl font-bold text-slate-900">¡Súper Captura Completada!</h3>
+        <p class="text-sm text-slate-500">Los datos han sido guardados correctamente en el sistema. Puedes descargar la cotización / remisión generada ahora mismo.</p>
+        <div class="p-3 bg-slate-50 rounded-xl font-mono text-sm font-semibold text-slate-700 mt-2" x-text="'Folio: ' + postCaptureQuoteId"></div>
+      </div>
+
+      <div class="flex flex-col gap-2 pt-4">
+        <button @click="exportQuoteToPDF(cotizaciones.find(c => c.ID_Cotizacion === postCaptureQuoteId)); showModal = null; navigate('resumen');" class="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 py-3 px-5 text-sm font-semibold text-white transition">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          Descargar PDF Cotización
+        </button>
+        <button @click="showModal = null; navigate('resumen');" class="w-full rounded-xl border border-slate-200 py-3 px-5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
+          Ir al Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL: CLIENTE -->
   <div x-show="showModal === 'cliente'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">

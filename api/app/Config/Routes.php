@@ -58,6 +58,9 @@ $routes->get('reportes/cliente-mes/(:segment)', 'ApiController::getFacturacionCl
 $routes->post('admin/clear-database-zero', 'ApiController::clearAllData');
 $routes->post('admin/seed-database', 'ApiController::seedDatabase');
 $routes->post('admin/parse-client-xml', 'ApiController::parseClientXML');
+$routes->post('facturas/upload-xml', 'ApiController::uploadInvoiceXML');
+$routes->get('plantas', 'ApiController::getPlantas');
+$routes->post('plantas', 'ApiController::createPlanta');
 
 
 // ------------------------------------------------------------------------
@@ -73,6 +76,8 @@ $routes->group('api', function($routes) {
     $routes->post('clientes', 'ApiController::createCliente');
     $routes->post('clientes/update/(:segment)', 'ApiController::updateCliente/$1');
     $routes->post('clientes/delete/(:segment)', 'ApiController::deleteCliente/$1');
+    $routes->get('plantas', 'ApiController::getPlantas');
+    $routes->post('plantas', 'ApiController::createPlanta');
 
     // Cotizaciones
     $routes->get('cotizaciones', 'ApiController::getCotizaciones');
@@ -112,4 +117,5 @@ $routes->group('api', function($routes) {
     $routes->post('admin/clear-database-zero', 'ApiController::clearAllData');
     $routes->post('admin/seed-database', 'ApiController::seedDatabase');
     $routes->post('admin/parse-client-xml', 'ApiController::parseClientXML');
+    $routes->post('facturas/upload-xml', 'ApiController::uploadInvoiceXML');
 });

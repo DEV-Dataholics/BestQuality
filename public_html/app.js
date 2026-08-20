@@ -26,6 +26,10 @@ document.addEventListener('alpine:init', () => {
             PO_Referencia: '',
             Monto_Autorizado: 0,
             Piezas_Autorizadas: 0,
+            Planta: '',
+            Planta_Nueva: '',
+            Numero_Parte: '',
+            Notas_Politicas: '',
             ID_Captura: '',
             Fecha: new Date().toISOString().split('T')[0],
             Horas_Trabajadas: 0,
@@ -35,6 +39,7 @@ document.addEventListener('alpine:init', () => {
 
         // Pareto Toggle
         paretoView: false,
+        porFacturarViewMode: 'tabla',
 
         // Data arrays
         dashboardData: {
@@ -42,6 +47,7 @@ document.addEventListener('alpine:init', () => {
             desglose_por_facturar: []
         },
         clientes: [],
+        plantas: [],
         cotizaciones: [],
         devengado: [],
         facturasData: [],
@@ -75,6 +81,7 @@ document.addEventListener('alpine:init', () => {
 
         selectedQuoteForPDF: null,
         selectedQuoteForPDFClient: null,
+        postCaptureQuoteId: '',
 
         clientForm: { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo', Direccion: '', CP: '' },
         cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '', Numero_Parte: '', Planta: '', Notas_Politicas: '', Numero_Remision: '' },
@@ -176,6 +183,11 @@ document.addEventListener('alpine:init', () => {
                         this.updateClientChart();
                     }
                 });
+
+            // 2.5 Cargar Plantas
+            fetch('/api/plantas')
+                .then(res => res.json())
+                .then(data => { this.plantas = data; });
 
             // 3. Cargar Cotizaciones
             fetch('/api/cotizaciones')
@@ -412,24 +424,47 @@ document.addEventListener('alpine:init', () => {
                 alert('ID de Cotización y Monto Autorizado son obligatorios.');
                 return;
             }
-            const form = new FormData();
-            form.append('ID_Cotizacion', this.superCapturaForm.ID_Cotizacion);
-            form.append('ID_Cliente', this.superCapturaForm.ID_Cliente);
-            form.append('PO_Referencia', this.superCapturaForm.PO_Referencia || '');
-            form.append('Monto_Autorizado', this.superCapturaForm.Monto_Autorizado);
-            form.append('Piezas_Autorizadas', this.superCapturaForm.Piezas_Autorizadas || 0);
-            form.append('Numero_Parte', this.superCapturaForm.Numero_Parte || '');
-            form.append('Planta', this.superCapturaForm.Planta || '');
-            form.append('Notas_Politicas', this.superCapturaForm.Notas_Politicas || this.DEFAULT_NOTAS);
-            form.append('Estatus', 'Aprobada');
 
-            fetch('/api/cotizaciones', { method: 'POST', body: form })
-            .then(res => res.json())
-            .then(() => {
-                this.loadAllData();
-                alert('Cotización creada y seleccionada.');
-                this.superCapturaStep = 3;
-            });
+            const proceed = () => {
+                const form = new FormData();
+                form.append('ID_Cotizacion', this.superCapturaForm.ID_Cotizacion);
+                form.append('ID_Cliente', this.superCapturaForm.ID_Cliente);
+                form.append('PO_Referencia', this.superCapturaForm.PO_Referencia || '');
+                form.append('Monto_Autorizado', this.superCapturaForm.Monto_Autorizado);
+                form.append('Piezas_Autorizadas', this.superCapturaForm.Piezas_Autorizadas || 0);
+                form.append('Numero_Parte', this.superCapturaForm.Numero_Parte || '');
+                
+                let plantaName = this.superCapturaForm.Planta;
+                const isNew = plantaName === 'NEW_PLANTA' || this.plantas.filter(pl => pl.ID_Cliente === this.superCapturaForm.ID_Cliente).length === 0;
+                if (isNew) {
+                    plantaName = this.superCapturaForm.Planta_Nueva;
+                }
+                form.append('Planta', plantaName || '');
+                form.append('Notas_Politicas', this.superCapturaForm.Notas_Politicas || this.DEFAULT_NOTAS);
+                form.append('Estatus', 'Aprobada');
+
+                fetch('/api/cotizaciones', { method: 'POST', body: form })
+                .then(res => res.json())
+                .then(() => {
+                    this.loadAllData();
+                    alert('Cotización creada y seleccionada.');
+                    this.superCapturaStep = 3;
+                });
+            };
+
+            let plantaName = this.superCapturaForm.Planta;
+            const isNew = plantaName === 'NEW_PLANTA' || this.plantas.filter(pl => pl.ID_Cliente === this.superCapturaForm.ID_Cliente).length === 0;
+            if (isNew && this.superCapturaForm.Planta_Nueva) {
+                const plantForm = new FormData();
+                plantForm.append('ID_Cliente', this.superCapturaForm.ID_Cliente);
+                plantForm.append('Nombre_Planta', this.superCapturaForm.Planta_Nueva);
+                fetch('/api/plantas', { method: 'POST', body: plantForm })
+                    .then(() => {
+                        proceed();
+                    });
+            } else {
+                proceed();
+            }
         },
 
         superCapturaFinalize() {
@@ -445,16 +480,21 @@ document.addEventListener('alpine:init', () => {
             fetch('/api/devengado', { method: 'POST', body: form })
             .then(res => res.json())
             .then(() => {
+                const quoteIdToDownload = this.superCapturaForm.ID_Cotizacion;
                 this.loadAllData();
-                alert('¡Super Captura completada con éxito!');
+                
+                // Show PDF download modal
+                this.postCaptureQuoteId = quoteIdToDownload;
+                this.showModal = 'post_capture_pdf';
+
                 // Reset form
                 this.superCapturaForm = {
                     ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Direccion: '', CP: '',
                     ID_Cotizacion: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0,
-                    ID_Captura: '', Fecha: new Date().toISOString().split('T')[0], Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0
+                    ID_Captura: '', Fecha: new Date().toISOString().split('T')[0], Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0,
+                    Planta: '', Planta_Nueva: '', Numero_Parte: '', Notas_Politicas: ''
                 };
                 this.superCapturaStep = 1;
-                this.navigate('resumen');
             });
         },
 
@@ -487,6 +527,64 @@ document.addEventListener('alpine:init', () => {
                 
                 html2pdf().from(element).set(opt).save();
             });
+        },
+
+        updateQuoteStatus(cotId, newStatus) {
+            const form = new FormData();
+            form.append('Estatus', newStatus);
+            fetch(`/api/cotizaciones/update/${cotId}`, { method: 'POST', body: form })
+                .then(res => res.json())
+                .then(() => {
+                    this.loadAllData();
+                });
+        },
+
+        uploadQuoteEvidenceFile(event, cotId) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('foto', file);
+
+            fetch('/api/cotizaciones/upload', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const updateForm = new FormData();
+                        updateForm.append('Evidencia', data.path);
+                        fetch(`/api/cotizaciones/update/${cotId}`, { method: 'POST', body: updateForm })
+                            .then(res => res.json())
+                            .then(() => {
+                                this.loadAllData();
+                                alert('Evidencia de aprobación cargada con éxito.');
+                            });
+                    } else {
+                        alert('Error al subir evidencia: ' + (data.message || 'Error desconocido'));
+                    }
+                });
+        },
+
+        uploadQuoteInvoiceXML(event, cotId) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('xml_file', file);
+            formData.append('ID_Cotizacion', cotId);
+
+            fetch('/api/facturas/upload-xml', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        this.loadAllData();
+                        alert('Factura XML cargada. La cotización se ha movido automáticamente a Por Cobrar.');
+                    } else {
+                        alert('Error al vincular XML de Factura: ' + (data.messages?.error || data.message || 'Error desconocido'));
+                    }
+                })
+                .catch(err => {
+                    alert('Error en la petición: ' + err);
+                });
         },
 
         // ------------------------------------------------------------------------
@@ -903,12 +1001,14 @@ document.addEventListener('alpine:init', () => {
         },
 
         getFilteredPorFacturar() {
-            return this.dashboardData.desglose_por_facturar.filter(item => {
+            return this.cotizaciones.filter(cot => {
+                const isBilled = this.facturasData.some(fac => fac.ID_Cotizacion === cot.ID_Cotizacion);
+                if (isBilled) return false;
+
                 const matchSearch = !this.filters.porfacturar.search ||
-                    item.ID_Cotizacion.toLowerCase().includes(this.filters.porfacturar.search.toLowerCase()) ||
-                    item.Cliente.toLowerCase().includes(this.filters.porfacturar.search.toLowerCase());
-                const matchCliente = !this.filters.porfacturar.cliente || 
-                    this.clientes.find(c => c.Nombre_Comercial === item.Cliente)?.ID_Cliente === this.filters.porfacturar.cliente;
+                    cot.ID_Cotizacion.toLowerCase().includes(this.filters.porfacturar.search.toLowerCase()) ||
+                    cot.Cliente.toLowerCase().includes(this.filters.porfacturar.search.toLowerCase());
+                const matchCliente = !this.filters.porfacturar.cliente || cot.ID_Cliente === this.filters.porfacturar.cliente;
                 return matchSearch && matchCliente;
             });
         },

@@ -45,6 +45,30 @@ class ApiController extends BaseController
         if (!$db->fieldExists('ID_Cotizacion', 'FACTURAS')) {
             $db->query("ALTER TABLE FACTURAS ADD COLUMN ID_Cotizacion VARCHAR(20) DEFAULT NULL");
         }
+
+        // Create CAT_CLIENTE_PLANTAS table
+        $db->query("CREATE TABLE IF NOT EXISTS `CAT_CLIENTE_PLANTAS` (
+            `ID_Planta` INT AUTO_INCREMENT PRIMARY KEY,
+            `ID_Cliente` VARCHAR(15) NOT NULL,
+            `Nombre_Planta` VARCHAR(100) NOT NULL,
+            FOREIGN KEY (`ID_Cliente`) REFERENCES `CAT_CLIENTES` (`ID_Cliente`) ON DELETE CASCADE ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+        // Seed some plants if empty
+        $count = $db->table('CAT_CLIENTE_PLANTAS')->countAllResults();
+        if ($count == 0) {
+            $db->table('CAT_CLIENTE_PLANTAS')->insertBatch([
+                ['ID_Cliente' => 'CLI-001', 'Nombre_Planta' => 'Planta Monterrey'],
+                ['ID_Cliente' => 'CLI-001', 'Nombre_Planta' => 'Planta Silao'],
+                ['ID_Cliente' => 'CLI-002', 'Nombre_Planta' => 'Planta Querétaro'],
+                ['ID_Cliente' => 'CLI-002', 'Nombre_Planta' => 'Planta Puebla'],
+                ['ID_Cliente' => 'CLI-003', 'Nombre_Planta' => 'Planta Saltillo'],
+                ['ID_Cliente' => 'CLI-004', 'Nombre_Planta' => 'Planta Toluca'],
+                ['ID_Cliente' => 'CLI-005', 'Nombre_Planta' => 'Planta San Luis Potosí'],
+                ['ID_Cliente' => 'CLI-006', 'Nombre_Planta' => 'Planta Aguascalientes'],
+                ['ID_Cliente' => 'CLI-007', 'Nombre_Planta' => 'Planta Saltillo GIS']
+            ]);
+        }
     }
 
     protected $bqsRfc = "BQS120813DF5";
@@ -178,6 +202,41 @@ class ApiController extends BaseController
             return $this->respondCreated($data);
         }
         return $this->failValidationError('No se pudo guardar el cliente.');
+    }
+
+    public function getPlantas()
+    {
+        $db = \Config\Database::connect();
+        $plantas = $db->table('CAT_CLIENTE_PLANTAS')->get()->getResultArray();
+        return $this->respond($plantas);
+    }
+
+    public function createPlanta()
+    {
+        $db = \Config\Database::connect();
+        $idCliente = $this->request->getPost('ID_Cliente');
+        $nombrePlanta = $this->request->getPost('Nombre_Planta');
+        
+        if (empty($idCliente) || empty($nombrePlanta)) {
+            return $this->fail('ID_Cliente y Nombre_Planta son requeridos.');
+        }
+
+        // Verificar si existe
+        $exists = $db->table('CAT_CLIENTE_PLANTAS')
+            ->where('ID_Cliente', $idCliente)
+            ->where('Nombre_Planta', $nombrePlanta)
+            ->get()
+            ->getRow();
+        if ($exists) {
+            return $this->respond(['status' => 'exists', 'message' => 'La planta ya existe.']);
+        }
+
+        $db->table('CAT_CLIENTE_PLANTAS')->insert([
+            'ID_Cliente' => $idCliente,
+            'Nombre_Planta' => $nombrePlanta
+        ]);
+
+        return $this->respondCreated(['status' => 'success', 'message' => 'Planta agregada correctamente.']);
     }
 
     public function getCotizaciones()
