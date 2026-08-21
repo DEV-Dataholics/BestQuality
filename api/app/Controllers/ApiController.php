@@ -45,6 +45,8 @@ class ApiController extends BaseController
         if (!$db->fieldExists('ID_Cotizacion', 'FACTURAS')) {
             $db->query("ALTER TABLE FACTURAS ADD COLUMN ID_Cotizacion VARCHAR(20) DEFAULT NULL");
         }
+        // Auto-fix 0-amount invoices to Cancelada status
+        $db->query("UPDATE FACTURAS SET Estatus_Pago = 'Cancelada' WHERE Monto_Total = 0.00 AND Estatus_Pago != 'Cancelada'");
 
         // Create CAT_CLIENTE_PLANTAS table
         $db->query("CREATE TABLE IF NOT EXISTS `CAT_CLIENTE_PLANTAS` (
