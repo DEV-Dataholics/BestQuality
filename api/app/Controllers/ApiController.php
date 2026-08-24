@@ -619,6 +619,21 @@ class ApiController extends BaseController
     {
         $model = new CotizacionModel();
         $data = $this->request->getPost();
+        
+        if (empty($data['ID_Cotizacion'])) {
+            $maxNum = 0;
+            $quotes = $model->select('ID_Cotizacion')->findAll();
+            foreach ($quotes as $q) {
+                if (preg_match('/COT-(\d+)/', $q['ID_Cotizacion'], $matches)) {
+                    $num = (int)$matches[1];
+                    if ($num > $maxNum) {
+                        $maxNum = $num;
+                    }
+                }
+            }
+            $data['ID_Cotizacion'] = 'COT-' . str_pad($maxNum + 1, 4, '0', STR_PAD_LEFT);
+        }
+
         if (isset($data['Estatus']) && $data['Estatus'] === 'Aprobada') {
             if (empty($data['Numero_Remision'])) {
                 $data['Numero_Remision'] = $this->generateNextRemisionNumber();

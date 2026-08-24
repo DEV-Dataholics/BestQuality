@@ -312,14 +312,17 @@ document.addEventListener('alpine:init', () => {
                     alert('Debes seleccionar o crear un cliente.');
                     return;
                 }
-                if (!this.superCapturaForm.ID_Cotizacion) {
-                    this.superCapturaForm.ID_Cotizacion = this.generateNextQuoteFolio();
-                }
                 if (!this.superCapturaForm.Notas_Politicas) {
                     this.superCapturaForm.Notas_Politicas = this.DEFAULT_NOTAS;
                 }
                 this.superCapturaStep = 2;
             } else if (this.superCapturaStep === 2) {
+                const exists = this.superCapturaForm.ID_Cotizacion && this.cotizaciones.some(c => c.ID_Cotizacion === this.superCapturaForm.ID_Cotizacion);
+                if (!exists && this.superCapturaForm.Monto_Autorizado > 0) {
+                    this.superCapturaCreateCotizacion();
+                    return;
+                }
+
                 if (!this.superCapturaForm.ID_Cotizacion) {
                     alert('Debes seleccionar o crear una cotización.');
                     return;
@@ -420,14 +423,16 @@ document.addEventListener('alpine:init', () => {
         },
 
         superCapturaCreateCotizacion() {
-            if (!this.superCapturaForm.ID_Cotizacion || this.superCapturaForm.Monto_Autorizado <= 0) {
-                alert('ID de Cotización y Monto Autorizado son obligatorios.');
+            if (this.superCapturaForm.Monto_Autorizado <= 0) {
+                alert('El Monto Autorizado es obligatorio y debe ser mayor a cero.');
                 return;
             }
 
             const proceed = () => {
                 const form = new FormData();
-                form.append('ID_Cotizacion', this.superCapturaForm.ID_Cotizacion);
+                if (this.superCapturaForm.ID_Cotizacion) {
+                    form.append('ID_Cotizacion', this.superCapturaForm.ID_Cotizacion);
+                }
                 form.append('ID_Cliente', this.superCapturaForm.ID_Cliente);
                 form.append('PO_Referencia', this.superCapturaForm.PO_Referencia || '');
                 form.append('Monto_Autorizado', this.superCapturaForm.Monto_Autorizado);
@@ -444,11 +449,20 @@ document.addEventListener('alpine:init', () => {
                 form.append('Estatus', 'Aprobada');
 
                 fetch('/api/cotizaciones', { method: 'POST', body: form })
-                .then(res => res.json())
-                .then(() => {
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(err => { throw new Error(err.message || 'Error al guardar cotización.'); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    this.superCapturaForm.ID_Cotizacion = data.ID_Cotizacion;
                     this.loadAllData();
-                    alert('Cotización creada y seleccionada.');
+                    alert('Cotización creada y seleccionada. Folio asignado: ' + data.ID_Cotizacion);
                     this.superCapturaStep = 3;
+                })
+                .catch(err => {
+                    alert('Error: ' + err.message);
                 });
             };
 
@@ -662,7 +676,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         saveItem(type) {
-            let url = `/api/${type === 'devengado' ? 'devengado' : type === 'pago' ? 'pagos' : type + 's'}`;
+            let url = `/api/${type === 'devengado' ? 'devengado' : type === 'pago' ? 'pagos' : type === 'cotizacion' ? 'cotizaciones' : type + 's'}`;
             let id = '';
             
             if (this.isEdit) {
@@ -706,7 +720,7 @@ document.addEventListener('alpine:init', () => {
         deleteItem(type, id) {
             if (!confirm('¿Estás seguro de que deseas eliminar este registro?')) return;
             
-            let url = `/api/${type === 'devengado' ? 'devengado' : type === 'pago' ? 'pagos' : type + 's'}/delete/${encodeURIComponent(id)}`;
+            let url = `/api/${type === 'devengado' ? 'devengado' : type === 'pago' ? 'pagos' : type === 'cotizacion' ? 'cotizaciones' : type + 's'}/delete/${encodeURIComponent(id)}`;
             
             fetch(url, { method: 'POST' })
             .then(res => {
