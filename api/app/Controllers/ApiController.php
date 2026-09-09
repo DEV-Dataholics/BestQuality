@@ -71,6 +71,22 @@ class ApiController extends BaseController
                 ['ID_Cliente' => 'CLI-007', 'Nombre_Planta' => 'Planta Saltillo GIS']
             ]);
         }
+
+        // Create LOGS_AUDITORIA table
+        $db->query("CREATE TABLE IF NOT EXISTS `LOGS_AUDITORIA` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `fecha_hora` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `usuario_email` VARCHAR(150) NOT NULL,
+            `rol` VARCHAR(50) DEFAULT NULL,
+            `ip` VARCHAR(45) DEFAULT NULL,
+            `modulo` VARCHAR(50) NOT NULL,
+            `accion` VARCHAR(50) NOT NULL,
+            `descripcion` TEXT NOT NULL,
+            `detalles_json` TEXT DEFAULT NULL,
+            INDEX `idx_modulo` (`modulo`),
+            INDEX `idx_fecha` (`fecha_hora`),
+            INDEX `idx_usuario` (`usuario_email`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
     }
 
     protected $bqsRfc = "BQS120813DF5";
@@ -94,22 +110,176 @@ class ApiController extends BaseController
         ];
 
         if (in_array(strtolower($email), $whitelist)) {
-            // Guardar en sesión
+            $role = strtolower($email) === 'eric@bestqualitysolutions.com' ? 'owner' : 'admin';
             session()->set('user_email', strtolower($email));
+            session()->set('user_role', $role);
+            $this->recordLog('AUTH', 'LOGIN', "Inicio de sesión exitoso: {$email}", ['email' => $email, 'rol' => $role]);
             return $this->respond([
                 'status' => 'success',
                 'email'  => $email,
-                'role'   => strtolower($email) === 'eric@bestqualitysolutions.com' ? 'owner' : 'admin'
+                'role'   => $role
             ]);
         }
 
+        $this->recordLog('AUTH', 'LOGIN_FALLIDO', "Intento de inicio de sesión no autorizado: {$email}", ['email' => $email]);
         return $this->failUnauthorized('El correo no se encuentra en la lista de acceso autorizado (Whitelist).');
     }
 
     public function logout()
     {
+        $this->recordLog('AUTH', 'LOGOUT', 'Cierre de sesión de usuario');
         session()->destroy();
         return $this->respond(['status' => 'success']);
+    }
+
+    // ------------------------------------------------------------------------
+    // MÓDULO LOGGING & BITÁCORA (SOLO PERFIL ADMINISTRADOR)
+    // ------------------------------------------------------------------------
+    protected function recordLog(string $modulo, string $accion, string $descripcion, $detalles = null)
+    {
+        try {
+            $db = \Config\Database::connect();
+            $email = session()->get('user_email') 
+                ?? $this->request->getHeaderLine('X-User-Email') 
+                ?? $this->request->getVar('user_email') 
+                ?? 'sistema';
+            $ip = $this->request->getIPAddress();
+            $role = session()->get('user_role') 
+                ?? ($email === 'eric@bestqualitysolutions.com' ? 'owner' : 'admin');
+
+            $db->table('LOGS_AUDITORIA')->insert([
+                'fecha_hora'    => date('Y-m-d H:i:s'),
+                'usuario_email' => strtolower((string)$email),
+                'rol'           => $role,
+                'ip'            => $ip,
+                'modulo'        => strtoupper($modulo),
+                'accion'        => strtoupper($accion),
+                'descripcion'   => $descripcion,
+                'detalles_json' => !empty($detalles) ? json_encode($detalles, JSON_UNESCAPED_UNICODE) : null
+            ]);
+        } catch (\Throwable $e) {
+            // Fail-safe de producción: no interrumpir la transacción principal
+            log_message('error', 'Fallo silencioso en recordLog: ' . $e->getMessage());
+        }
+    }
+
+    protected function checkAdminAccess(): bool
+    {
+        $sessionRole = session()->get('user_role');
+        $sessionEmail = session()->get('user_email');
+        $headerEmail = $this->request->getHeaderLine('X-User-Email');
+        $checkEmail = strtolower((string)($sessionEmail ?: $headerEmail));
+
+        if ($sessionRole === 'admin' || $sessionRole === 'owner') {
+            return true;
+        }
+
+        $adminEmails = [
+            'eric@bestqualitysolutions.com',
+            'admin@bestqualitysolutions.com'
+        ];
+
+        return in_array($checkEmail, $adminEmails);
+    }
+
+    public function getAuditLogs()
+    {
+        if (!$this->checkAdminAccess()) {
+            return $this->failForbidden('Acceso denegado. Este registro está reservado exclusivamente para el perfil Administrador.');
+        }
+
+        $db = \Config\Database::connect();
+        $builder = $db->table('LOGS_AUDITORIA')->orderBy('id', 'DESC');
+
+        $modulo = $this->request->getGet('modulo');
+        if (!empty($modulo)) {
+            $builder->where('modulo', strtoupper($modulo));
+        }
+
+        $search = $this->request->getGet('search');
+        if (!empty($search)) {
+            $builder->groupStart()
+                ->like('descripcion', $search)
+                ->orLike('usuario_email', $search)
+                ->orLike('accion', $search)
+                ->groupEnd();
+        }
+
+        $limit = (int)($this->request->getGet('limit') ?: 200);
+        $logs = $builder->limit(min($limit, 500))->get()->getResultArray();
+
+        return $this->respond([
+            'status' => 'success',
+            'data'   => $logs
+        ]);
+    }
+
+    public function getSystemLogs()
+    {
+        if (!$this->checkAdminAccess()) {
+            return $this->failForbidden('Acceso denegado. Este registro está reservado exclusivamente para el perfil Administrador.');
+        }
+
+        $logDir = WRITEPATH . 'logs/';
+        if (!is_dir($logDir)) {
+            $logDir = ROOTPATH . 'writable/logs/';
+        }
+        if (!is_dir($logDir)) {
+            $logDir = APPPATH . '../writable/logs/';
+        }
+
+        if (!is_dir($logDir)) {
+            return $this->respond([
+                'status'  => 'success',
+                'files'   => [],
+                'content' => 'No se encontró el directorio de logs del servidor.'
+            ]);
+        }
+
+        $fileList = glob($logDir . 'log-*.log');
+        $filesMeta = [];
+        if (!empty($fileList)) {
+            usort($fileList, function($a, $b) {
+                return filemtime($b) - filemtime($a);
+            });
+            foreach ($fileList as $f) {
+                $filesMeta[] = [
+                    'name'     => basename($f),
+                    'size'     => round(filesize($f) / 1024, 2) . ' KB',
+                    'modified' => date('Y-m-d H:i:s', filemtime($f))
+                ];
+            }
+        }
+
+        $requestedFile = $this->request->getGet('file');
+        $targetFile = null;
+
+        if (!empty($requestedFile)) {
+            $sanitized = basename($requestedFile);
+            if (file_exists($logDir . $sanitized)) {
+                $targetFile = $logDir . $sanitized;
+            }
+        } elseif (!empty($fileList)) {
+            $targetFile = $fileList[0];
+        }
+
+        $content = '';
+        if ($targetFile && file_exists($targetFile)) {
+            $fileContent = file_get_contents($targetFile);
+            $lines = explode("\n", $fileContent);
+            if (count($lines) > 300) {
+                $content = implode("\n", array_slice($lines, -300));
+            } else {
+                $content = $fileContent;
+            }
+        }
+
+        return $this->respond([
+            'status'       => 'success',
+            'files'        => $filesMeta,
+            'selectedFile' => $targetFile ? basename($targetFile) : null,
+            'content'      => $content
+        ]);
     }
 
     // ------------------------------------------------------------------------
@@ -201,6 +371,7 @@ class ApiController extends BaseController
         $model = new ClienteModel();
         $data = $this->request->getPost();
         if ($model->insert($data)) {
+            $this->recordLog('CLIENTES', 'CREAR', "Cliente registrado: " . ($data['Nombre_Comercial'] ?? $data['ID_Cliente'] ?? 'Nuevo Cliente'), $data);
             return $this->respondCreated($data);
         }
         return $this->failValidationError('No se pudo guardar el cliente.');
@@ -237,6 +408,8 @@ class ApiController extends BaseController
             'ID_Cliente' => $idCliente,
             'Nombre_Planta' => $nombrePlanta
         ]);
+
+        $this->recordLog('CLIENTES', 'NUEVA_PLANTA', "Planta '{$nombrePlanta}' asociada al cliente {$idCliente}");
 
         return $this->respondCreated(['status' => 'success', 'message' => 'Planta agregada correctamente.']);
     }
@@ -421,6 +594,8 @@ class ApiController extends BaseController
             $importados++;
         }
 
+        $this->recordLog('IMPORTACION', 'CSV', "Importación de CSV completada. Procesadas {$importados} facturas.");
+
         return $this->respond(['status' => 'success', 'message' => "Se importaron/actualizaron {$importados} facturas."]);
     }
 
@@ -557,6 +732,11 @@ class ApiController extends BaseController
             $conciliados++;
         }
 
+        $this->recordLog('IMPORTACION', 'CONCILIACION_XML', "Conciliación de pagos XML completada. Facturas conciliadas: {$conciliados}.", [
+            'conciliados' => $conciliados,
+            'logs'        => $logs
+        ]);
+
         return $this->respond([
             'status'      => 'success',
             'conciliados' => $conciliados,
@@ -572,6 +752,7 @@ class ApiController extends BaseController
         $model = new ClienteModel();
         $data = $this->request->getPost();
         if ($model->update($id, $data)) {
+            $this->recordLog('CLIENTES', 'ACTUALIZAR', "Cliente actualizado: {$id}", $data);
             return $this->respond(['status' => 'success']);
         }
         return $this->failValidationError('No se pudo actualizar el cliente.');
@@ -587,6 +768,7 @@ class ApiController extends BaseController
 
         $model = new ClienteModel();
         if ($model->delete($id)) {
+            $this->recordLog('CLIENTES', 'ELIMINAR', "Cliente eliminado: {$id}");
             return $this->respondDeleted(['status' => 'success']);
         }
         return $this->failValidationError('No se pudo eliminar el cliente.');
@@ -640,6 +822,7 @@ class ApiController extends BaseController
             }
         }
         if ($model->insert($data)) {
+            $this->recordLog('COTIZACIONES', 'CREAR', "Cotización creada: {$data['ID_Cotizacion']} para {$data['ID_Cliente']} por monto $" . ($data['Monto_Autorizado'] ?? '0'), $data);
             return $this->respondCreated($data);
         }
         return $this->failValidationError('No se pudo guardar la cotización.');
@@ -656,6 +839,7 @@ class ApiController extends BaseController
             }
         }
         if ($model->update($id, $data)) {
+            $this->recordLog('COTIZACIONES', 'ACTUALIZAR', "Cotización actualizada: {$id}", $data);
             return $this->respond(['status' => 'success']);
         }
         return $this->failValidationError('No se pudo actualizar la cotización.');
@@ -670,6 +854,7 @@ class ApiController extends BaseController
 
         $model = new CotizacionModel();
         if ($model->delete($id)) {
+            $this->recordLog('COTIZACIONES', 'ELIMINAR', "Cotización eliminada: {$id}");
             return $this->respondDeleted(['status' => 'success']);
         }
         return $this->failValidationError('No se pudo eliminar la cotización.');
@@ -683,6 +868,7 @@ class ApiController extends BaseController
         $model = new SorteoModel();
         $data = $this->request->getPost();
         if ($model->insert($data)) {
+            $this->recordLog('DEVENGADO', 'CREAR', "Sorteo devengado registrado: {$data['ID_Captura']} para cotización " . ($data['ID_Cotizacion'] ?? 'N/A') . " (Monto: $" . ($data['Monto_Devengado'] ?? 0) . ")", $data);
             return $this->respondCreated($data);
         }
         return $this->failValidationError('No se pudo guardar el devengado.');
@@ -693,6 +879,7 @@ class ApiController extends BaseController
         $model = new SorteoModel();
         $data = $this->request->getPost();
         if ($model->update($id, $data)) {
+            $this->recordLog('DEVENGADO', 'ACTUALIZAR', "Sorteo devengado actualizado: {$id}", $data);
             return $this->respond(['status' => 'success']);
         }
         return $this->failValidationError('No se pudo actualizar el devengado.');
@@ -702,6 +889,7 @@ class ApiController extends BaseController
     {
         $model = new SorteoModel();
         if ($model->delete($id)) {
+            $this->recordLog('DEVENGADO', 'ELIMINAR', "Sorteo devengado eliminado: {$id}");
             return $this->respondDeleted(['status' => 'success']);
         }
         return $this->failValidationError('No se pudo eliminar el devengado.');
@@ -715,6 +903,7 @@ class ApiController extends BaseController
         $model = new FacturaModel();
         $data = $this->request->getPost();
         if ($model->insert($data)) {
+            $this->recordLog('FACTURAS', 'CREAR', "Factura creada: {$data['Folio_Factura']} para cliente " . ($data['ID_Cliente'] ?? 'N/A') . " (Total: $" . ($data['Monto_Total'] ?? 0) . ")", $data);
             return $this->respondCreated($data);
         }
         return $this->failValidationError('No se pudo guardar la factura.');
@@ -725,6 +914,7 @@ class ApiController extends BaseController
         $model = new FacturaModel();
         $data = $this->request->getPost();
         if ($model->update($id, $data)) {
+            $this->recordLog('FACTURAS', 'ACTUALIZAR', "Factura actualizada: {$id}", $data);
             return $this->respond(['status' => 'success']);
         }
         return $this->failValidationError('No se pudo actualizar la factura.');
@@ -740,6 +930,7 @@ class ApiController extends BaseController
 
         $model = new FacturaModel();
         if ($model->delete($id)) {
+            $this->recordLog('FACTURAS', 'ELIMINAR', "Factura eliminada: {$id}");
             return $this->respondDeleted(['status' => 'success']);
         }
         return $this->failValidationError('No se pudo eliminar la factura.');
@@ -771,6 +962,7 @@ class ApiController extends BaseController
                 $nuevoEstatus = ($totalPagos >= $factura['Monto_Total']) ? 'Pagada' : 'Pago Parcial';
                 $facturaModel->update($data['Folio_Factura'], ['Estatus_Pago' => $nuevoEstatus]);
             }
+            $this->recordLog('PAGOS', 'CREAR', "Pago registrado: $" . ($data['Monto_Pagado'] ?? 0) . " para factura {$data['Folio_Factura']} (Ref: " . ($data['Referencia'] ?? 'N/A') . ")", $data);
             return $this->respondCreated($data);
         }
         return $this->failValidationError('No se pudo guardar el pago.');
@@ -792,6 +984,7 @@ class ApiController extends BaseController
                     $facturaModel->update($pago['Folio_Factura'], ['Estatus_Pago' => $nuevoEstatus]);
                 }
             }
+            $this->recordLog('PAGOS', 'ACTUALIZAR', "Pago actualizado: {$id}", $data);
             return $this->respond(['status' => 'success']);
         }
         return $this->failValidationError('No se pudo actualizar el pago.');
@@ -812,6 +1005,7 @@ class ApiController extends BaseController
                     $nuevoEstatus = ($totalPagos == 0) ? 'Vigente' : (($totalPagos >= $factura['Monto_Total']) ? 'Pagada' : 'Pago Parcial');
                     $facturaModel->update($folioFactura, ['Estatus_Pago' => $nuevoEstatus]);
                 }
+                $this->recordLog('PAGOS', 'ELIMINAR', "Pago eliminado: {$id} (Factura: {$folioFactura})");
                 return $this->respondDeleted(['status' => 'success']);
             }
         }
@@ -920,6 +1114,7 @@ class ApiController extends BaseController
 
         $newName = $file->getRandomName();
         if ($file->move($uploadPath, $newName)) {
+            $this->recordLog('COTIZACIONES', 'EVIDENCIA', "Evidencia fotográfica subida: {$newName}");
             return $this->respond([
                 'status' => 'success',
                 'path'   => 'uploads/' . $newName
@@ -996,6 +1191,8 @@ class ApiController extends BaseController
             $db->query("TRUNCATE TABLE `$table`");
         }
         $db->query("SET FOREIGN_KEY_CHECKS = 1");
+
+        $this->recordLog('ADMIN', 'LIMPIAR_BD', "Base de datos restablecida a cero. Respaldo generado: " . basename($backupPath));
 
         return $this->respond([
             'status' => 'success',
@@ -1118,6 +1315,8 @@ class ApiController extends BaseController
                 'Referencia' => $p[4]
             ]);
         }
+
+        $this->recordLog('ADMIN', 'SEMBRAR_BD', "Base de datos sembrada con registros de prueba.");
 
         return $this->respond([
             'status' => 'success',

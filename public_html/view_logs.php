@@ -1,18 +1,9 @@
 <?php
 
-// view_logs.php
-// Script to read CodeIgniter 4 error logs on the remote server
-
-$logDir = __DIR__ . '/api/writable/logs/';
-if (!is_dir($logDir)) {
-    $logDir = __DIR__ . '/../api/writable/logs/';
-}
-
-if (!is_dir($logDir)) {
-    die("ERROR: No se encontró el directorio de logs: " . realpath($logDir));
-}
-
-echo "<h3>Logs de CodeIgniter 4</h3>";
+// view_logs.php - Protegido contra acceso no autorizado
+header('HTTP/1.1 403 Forbidden');
+header('Location: /');
+exit('Acceso no autorizado. Los logs están protegidos y disponibles únicamente en el portal para el perfil Administrador.');
 $files = glob($logDir . 'log-*.log');
 if (empty($files)) {
     echo "No se encontraron archivos de logs en: " . realpath($logDir);

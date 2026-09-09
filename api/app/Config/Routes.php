@@ -61,6 +61,8 @@ $routes->post('admin/parse-client-xml', 'ApiController::parseClientXML');
 $routes->post('facturas/upload-xml', 'ApiController::uploadInvoiceXML');
 $routes->get('plantas', 'ApiController::getPlantas');
 $routes->post('plantas', 'ApiController::createPlanta');
+$routes->get('admin/logs/audit', 'ApiController::getAuditLogs');
+$routes->get('admin/logs/system', 'ApiController::getSystemLogs');
 
 
 // ------------------------------------------------------------------------
@@ -118,4 +120,6 @@ $routes->group('api', function($routes) {
     $routes->post('admin/seed-database', 'ApiController::seedDatabase');
     $routes->post('admin/parse-client-xml', 'ApiController::parseClientXML');
     $routes->post('facturas/upload-xml', 'ApiController::uploadInvoiceXML');
+    $routes->get('admin/logs/audit', 'ApiController::getAuditLogs');
+    $routes->get('admin/logs/system', 'ApiController::getSystemLogs');
 });

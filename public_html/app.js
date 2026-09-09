@@ -97,7 +97,19 @@ document.addEventListener('alpine:init', () => {
             facturas: { search: '', cliente: '', estatus: '' },
             pagos: { search: '', factura: '' },
             porfacturar: { search: '', cliente: '' },
-            porcobrar: { search: '', cliente: '' }
+            porcobrar: { search: '', cliente: '' },
+            logs: { search: '', modulo: '' }
+        },
+
+        logsData: {
+            audit: [],
+            systemFiles: [],
+            selectedFile: '',
+            systemContent: '',
+            activeTab: 'audit',
+            loading: false,
+            error: '',
+            inspectingLog: null
         },
 
         init() {
@@ -162,6 +174,9 @@ document.addEventListener('alpine:init', () => {
                 this.$nextTick(() => {
                     this.initCharts();
                 });
+            } else if (page === 'logs') {
+                this.loadAuditLogs();
+                this.loadSystemLogs();
             }
         },
 
@@ -907,7 +922,8 @@ document.addEventListener('alpine:init', () => {
                 importar: 'Carga de Archivos e Importación',
                 reportes: 'Reportes de Cobranza',
                 super_captura: 'Modo Super Captura Wizard',
-                migracion: 'Auditoría Pre-Migración ("Facturas en el Aire")'
+                migracion: 'Auditoría Pre-Migración ("Facturas en el Aire")',
+                logs: 'Bitácora de Eventos y Logs del Sistema'
             }[this.activePage] || 'Portal BQS';
         },
 
@@ -1035,6 +1051,95 @@ document.addEventListener('alpine:init', () => {
                 const matchCliente = !this.filters.porcobrar.cliente || item.ID_Cliente === this.filters.porcobrar.cliente;
                 return matchSearch && matchCliente;
             });
+        },
+
+        // ------------------------------------------------------------------------
+        // LOGGING & AUDITORÍA (PERFIL ADMIN)
+        // ------------------------------------------------------------------------
+        loadAuditLogs() {
+            this.logsData.loading = true;
+            this.logsData.error = '';
+            let url = `/api/admin/logs/audit?limit=300`;
+            if (this.filters.logs.modulo) {
+                url += `&modulo=${encodeURIComponent(this.filters.logs.modulo)}`;
+            }
+            if (this.filters.logs.search) {
+                url += `&search=${encodeURIComponent(this.filters.logs.search)}`;
+            }
+
+            fetch(url, {
+                headers: {
+                    'X-User-Email': this.userEmail
+                }
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.message || 'Error al consultar bitácora.'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                this.logsData.audit = data.data || [];
+                this.logsData.loading = false;
+            })
+            .catch(err => {
+                this.logsData.error = err.message;
+                this.logsData.loading = false;
+            });
+        },
+
+        loadSystemLogs(filename = '') {
+            this.logsData.loading = true;
+            let url = `/api/admin/logs/system`;
+            if (filename) {
+                url += `?file=${encodeURIComponent(filename)}`;
+            }
+
+            fetch(url, {
+                headers: {
+                    'X-User-Email': this.userEmail
+                }
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.message || 'Error al consultar logs del servidor.'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                this.logsData.systemFiles = data.files || [];
+                this.logsData.selectedFile = data.selectedFile || '';
+                this.logsData.systemContent = data.content || '';
+                this.logsData.loading = false;
+            })
+            .catch(err => {
+                this.logsData.error = err.message;
+                this.logsData.loading = false;
+            });
+        },
+
+        getFilteredAuditLogs() {
+            let logs = this.logsData.audit || [];
+            const search = (this.filters.logs.search || '').toLowerCase();
+            const modulo = this.filters.logs.modulo;
+
+            return logs.filter(l => {
+                const matchModulo = !modulo || l.modulo === modulo;
+                const matchSearch = !search ||
+                    (l.descripcion && l.descripcion.toLowerCase().includes(search)) ||
+                    (l.usuario_email && l.usuario_email.toLowerCase().includes(search)) ||
+                    (l.accion && l.accion.toLowerCase().includes(search)) ||
+                    (l.modulo && l.modulo.toLowerCase().includes(search));
+                return matchModulo && matchSearch;
+            });
+        },
+
+        inspectLogJson(logItem) {
+            this.logsData.inspectingLog = logItem;
+        },
+
+        closeInspectLog() {
+            this.logsData.inspectingLog = null;
         }
     }));
 });
