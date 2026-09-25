@@ -310,28 +310,54 @@
                 </div>
               </div>
 
-              <!-- Vista Semáforos Estándar -->
-              <div x-show="!paretoView" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- KPI 1 -->
-                <div class="bg-white rounded-2xl border border-slate-200 p-6 relative overflow-hidden shadow-sm">
-                  <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500"></span>
-                  <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">¿Qué ya se facturó?</p>
-                  <p class="mt-2 text-3xl font-extrabold text-slate-900" x-text="formatCurrency(dashboardData.resumen.facturado_mes)"></p>
-                  <p class="mt-1 text-xs text-slate-500">Total facturado en el mes en curso</p>
+              <!-- Vista Semáforos / Pipeline Estándar -->
+              <div x-show="!paretoView" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <!-- Etapa 1: Cotizado -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 relative overflow-hidden shadow-sm hover:border-indigo-300 hover:shadow-md transition duration-150 cursor-pointer" @click="navigate('cotizaciones')">
+                  <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500"></span>
+                  <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">1</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Autorizado</span>
+                  </div>
+                  <p class="mt-2 text-xs font-bold text-slate-400 uppercase tracking-wider">1. Cotizado</p>
+                  <p class="mt-1 text-2xl font-extrabold text-slate-900" x-text="formatCurrency(dashboardData.resumen.total_cotizado || 0)"></p>
+                  <p class="mt-1 text-xs text-slate-500">Monto total en cotizaciones aprobadas</p>
                 </div>
-                <!-- KPI 2 -->
-                <div class="bg-white rounded-2xl border border-slate-200 p-6 relative overflow-hidden shadow-sm cursor-pointer hover:border-amber-300 transition duration-150" @click="navigate('porfacturar')">
+
+                <!-- Etapa 2: Devengado por Facturar -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 relative overflow-hidden shadow-sm hover:border-amber-300 hover:shadow-md transition duration-150 cursor-pointer" @click="navigate('porfacturar')">
                   <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500"></span>
-                  <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">¿Qué falta por facturar?</p>
-                  <p class="mt-2 text-3xl font-extrabold text-slate-900" x-text="formatCurrency(dashboardData.resumen.falta_facturar)"></p>
-                  <p class="mt-1 text-xs text-slate-500">Servicios devengados pendientes</p>
+                  <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">2</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pendiente XML</span>
+                  </div>
+                  <p class="mt-2 text-xs font-bold text-slate-400 uppercase tracking-wider">2. Por Facturar</p>
+                  <p class="mt-1 text-2xl font-extrabold text-slate-900" x-text="formatCurrency(dashboardData.resumen.falta_facturar || 0)"></p>
+                  <p class="mt-1 text-xs text-slate-500">Sorteo devengado sin facturar</p>
                 </div>
-                <!-- KPI 3 -->
-                <div class="bg-white rounded-2xl border border-slate-200 p-6 relative overflow-hidden shadow-sm cursor-pointer hover:border-bqs-hover transition duration-150" @click="navigate('porcobrar')">
+
+                <!-- Etapa 3: Facturas por Cobrar -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 relative overflow-hidden shadow-sm hover:border-bqs-hover hover:shadow-md transition duration-150 cursor-pointer" @click="navigate('porcobrar')">
                   <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-bqs"></span>
-                  <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">¿Cuánto dinero te deben?</p>
-                  <p class="mt-2 text-3xl font-extrabold text-slate-900" x-text="formatCurrency(dashboardData.resumen.deuda_total)"></p>
-                  <p class="mt-1 text-xs text-slate-500">Cuentas por cobrar (neto de abonos)</p>
+                  <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-bqs text-xs font-bold">3</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-bqs bg-blue-50 px-2 py-0.5 rounded-full">CxC Activa</span>
+                  </div>
+                  <p class="mt-2 text-xs font-bold text-slate-400 uppercase tracking-wider">3. Por Cobrar</p>
+                  <p class="mt-1 text-2xl font-extrabold text-slate-900" x-text="formatCurrency(dashboardData.resumen.deuda_total || 0)"></p>
+                  <p class="mt-1 text-xs text-slate-500">Facturas vigentes y vencidas</p>
+                </div>
+
+                <!-- Etapa 4: Cobrado / Pagado -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 relative overflow-hidden shadow-sm hover:border-emerald-300 hover:shadow-md transition duration-150 cursor-pointer" @click="navigate('pagos')">
+                  <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500"></span>
+                  <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">4</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Liquidado</span>
+                  </div>
+                  <p class="mt-2 text-xs font-bold text-slate-400 uppercase tracking-wider">4. Total Pagado</p>
+                  <p class="mt-1 text-2xl font-extrabold text-slate-900" x-text="formatCurrency(dashboardData.resumen.total_pagado || 0)"></p>
+                  <p class="mt-1 text-xs text-slate-500">Cobros recibidos y conciliados</p>
                 </div>
               </div>
 
@@ -748,10 +774,14 @@
                               </label>
                             </td>
                             <td class="py-3 text-right">
-                              <button @click="exportQuoteToPDF(item)" class="inline-flex items-center gap-1 text-xs text-indigo-600 font-bold hover:underline">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                PDF
-                              </button>
+                              <div class="inline-flex items-center gap-1 justify-end">
+                                <button @click="exportQuoteToPDF(item, 'es')" title="Descargar PDF en Español" class="px-1.5 py-0.5 text-[11px] font-semibold bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition">
+                                  🇲🇽 ES
+                                </button>
+                                <button @click="exportQuoteToPDF(item, 'en')" title="Download PDF in English" class="px-1.5 py-0.5 text-[11px] font-semibold bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition">
+                                  🇺🇸 EN
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         </template>
@@ -797,10 +827,15 @@
                           </div>
                           
                           <div class="border-t pt-3 flex flex-wrap gap-2 justify-between items-center">
-                            <button @click="exportQuoteToPDF(item)" class="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1">
-                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                              PDF
-                            </button>
+                            <div class="inline-flex items-center gap-1">
+                              <button @click="exportQuoteToPDF(item, 'es')" title="PDF Español" class="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-0.5">
+                                🇲🇽 PDF
+                              </button>
+                              <span class="text-slate-300">|</span>
+                              <button @click="exportQuoteToPDF(item, 'en')" title="PDF English" class="text-xs text-slate-600 font-bold hover:underline flex items-center gap-0.5">
+                                🇺🇸 PDF
+                              </button>
+                            </div>
 
                             <div class="flex items-center gap-1.5">
                               <template x-if="item.Evidencia">
@@ -1008,7 +1043,8 @@
                               </template>
                             </td>
                             <td class="py-3 text-right space-x-2">
-                              <button @click="exportQuoteToPDF(cot)" class="text-indigo-600 hover:text-indigo-700 font-medium mr-1">PDF</button>
+                              <button @click="exportQuoteToPDF(cot, 'es')" title="PDF Español" class="px-1.5 py-0.5 text-xs font-semibold bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition mr-0.5">🇲🇽 ES</button>
+                              <button @click="exportQuoteToPDF(cot, 'en')" title="PDF English" class="px-1.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition mr-2">🇺🇸 EN</button>
                               <button @click="openEditModal('cotizacion', cot)" class="text-bqs hover:text-bqs-hover font-medium">Editar</button>
                               <button @click="deleteItem('cotizacion', cot.ID_Cotizacion)" class="text-red-600 hover:text-red-700 font-medium">Borrar</button>
                             </td>
@@ -1299,16 +1335,51 @@
                 </div>
               </div>
 
-              <!-- Export bar -->
-              <div class="flex justify-end gap-3 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                <button @click="exportReportToCSV()" class="flex items-center gap-2 rounded-xl bg-slate-600 hover:bg-slate-700 py-2.5 px-5 text-sm font-semibold text-white transition duration-150">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  Exportar a CSV
-                </button>
-                <button @click="exportReportToPDF()" class="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 px-5 text-sm font-semibold text-white transition duration-150">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                  Exportar a PDF
-                </button>
+              <!-- Filtros de Reporte y Barra de Exportación -->
+              <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                  <!-- Filtros -->
+                  <div class="flex flex-wrap items-center gap-3">
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Inicio</label>
+                      <input type="date" x-model="filters.reportes.start" @change="loadExecutiveReport()" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-700 focus:border-bqs focus:outline-none">
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Fin</label>
+                      <input type="date" x-model="filters.reportes.end" @change="loadExecutiveReport()" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-700 focus:border-bqs focus:outline-none">
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cliente</label>
+                      <select x-model="filters.reportes.cliente" @change="loadExecutiveReport()" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-700 focus:border-bqs focus:outline-none min-w-[180px]">
+                        <option value="">Todos los Clientes</option>
+                        <template x-for="c in clientes" :key="c.ID_Cliente">
+                          <option :value="c.ID_Cliente" x-text="c.Nombre_Comercial || c.Nombre_Fiscal"></option>
+                        </template>
+                      </select>
+                    </div>
+                    <div class="flex items-end gap-2 pt-4">
+                      <button @click="loadExecutiveReport()" class="flex items-center gap-1.5 rounded-xl bg-bqs hover:bg-bqs-hover py-1.5 px-3.5 text-xs font-semibold text-white transition duration-150">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                        Filtrar
+                      </button>
+                      <button @click="resetReportFilters()" class="flex items-center gap-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 py-1.5 px-3 text-xs font-semibold text-slate-600 transition duration-150" title="Restablecer filtros">
+                        Limpiar
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Botones de Exportación -->
+                  <div class="flex items-center gap-2 pt-2 sm:pt-4">
+                    <button @click="exportReportToCSV()" class="flex items-center gap-2 rounded-xl bg-slate-600 hover:bg-slate-700 py-2 px-4 text-xs font-semibold text-white transition duration-150">
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      CSV
+                    </button>
+                    <button @click="exportReportToPDF()" class="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2 px-4 text-xs font-semibold text-white transition duration-150">
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                      PDF
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <!-- Two Column split tables -->
@@ -1731,11 +1802,17 @@
       </div>
 
       <div class="flex flex-col gap-2 pt-4">
-        <button @click="exportQuoteToPDF(cotizaciones.find(c => c.ID_Cotizacion === postCaptureQuoteId)); showModal = null; navigate('resumen');" class="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 py-3 px-5 text-sm font-semibold text-white transition">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-          Descargar PDF Cotización
-        </button>
-        <button @click="showModal = null; navigate('resumen');" class="w-full rounded-xl border border-slate-200 py-3 px-5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
+        <div class="grid grid-cols-2 gap-2">
+          <button @click="exportQuoteToPDF(cotizaciones.find(c => c.ID_Cotizacion === postCaptureQuoteId), 'es'); showModal = null; navigate('resumen');" class="flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 py-3 px-3 text-xs font-semibold text-white transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            🇲🇽 PDF Español
+          </button>
+          <button @click="exportQuoteToPDF(cotizaciones.find(c => c.ID_Cotizacion === postCaptureQuoteId), 'en'); showModal = null; navigate('resumen');" class="flex items-center justify-center gap-1.5 rounded-xl bg-slate-700 hover:bg-slate-800 py-3 px-3 text-xs font-semibold text-white transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            🇺🇸 PDF English
+          </button>
+        </div>
+        <button @click="showModal = null; navigate('resumen');" class="w-full rounded-xl border border-slate-200 py-2.5 px-5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
           Ir al Dashboard
         </button>
       </div>
@@ -2050,30 +2127,30 @@
               <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">Servicios de Calidad, Sorteo e Inspección de Componentes</p>
             </div>
             <div style="text-align: right;">
-              <h2 style="font-size: 16px; font-weight: bold; color: #4338ca; margin: 0;">COTIZACIÓN / REMISIÓN</h2>
+              <h2 style="font-size: 16px; font-weight: bold; color: #4338ca; margin: 0;" x-text="tQuote('doc_title')">COTIZACIÓN / REMISIÓN</h2>
               <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: bold; font-family: monospace; color: #1e293b;" x-text="selectedQuoteForPDF.ID_Cotizacion"></p>
               <template x-if="selectedQuoteForPDF.Numero_Remision">
-                <p style="margin: 2px 0 0 0; font-size: 11px; font-weight: bold; color: #0f766e; font-family: monospace;" x-text="'Remisión: ' + selectedQuoteForPDF.Numero_Remision"></p>
+                <p style="margin: 2px 0 0 0; font-size: 11px; font-weight: bold; color: #0f766e; font-family: monospace;" x-text="tQuote('remision') + selectedQuoteForPDF.Numero_Remision"></p>
               </template>
-              <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;" x-text="'Fecha: ' + new Date().toLocaleDateString()"></p>
+              <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;" x-text="tQuote('date') + new Date().toLocaleDateString()"></p>
             </div>
           </div>
 
           <!-- Info columns -->
           <div style="display: flex; justify-content: space-between; margin-bottom: 25px; gap: 20px;">
             <div style="flex: 1; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">
-              <h3 style="margin-top: 0; font-size: 12px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">Cliente</h3>
+              <h3 style="margin-top: 0; font-size: 12px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;" x-text="tQuote('client_box')">Cliente</h3>
               <p style="margin: 4px 0; font-weight: bold;" x-text="selectedQuoteForPDFClient.Nombre_Fiscal || selectedQuoteForPDFClient.Nombre_Comercial"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="'RFC: ' + selectedQuoteForPDFClient.RFC"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="'Dirección: ' + (selectedQuoteForPDFClient.Direccion || 'N/A')"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="'C.P.: ' + (selectedQuoteForPDFClient.CP || 'N/A')"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('rfc') + selectedQuoteForPDFClient.RFC"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('address') + (selectedQuoteForPDFClient.Direccion || 'N/A')"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('zip') + (selectedQuoteForPDFClient.CP || 'N/A')"></p>
             </div>
             <div style="flex: 1; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">
-              <h3 style="margin-top: 0; font-size: 12px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">Detalles de la Oferta</h3>
-              <p style="margin: 4px 0; font-size: 11px;" x-text="'Planta: ' + (selectedQuoteForPDF.Planta || 'N/A')"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="'Número de Parte: ' + (selectedQuoteForPDF.Numero_Parte || 'N/A')"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="'Orden Compra (PO): ' + (selectedQuoteForPDF.PO_Referencia || 'Pendiente')"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="'Estatus: ' + selectedQuoteForPDF.Estatus"></p>
+              <h3 style="margin-top: 0; font-size: 12px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;" x-text="tQuote('offer_box')">Detalles de la Oferta</h3>
+              <p style="margin: 4px 0; font-size: 11px;" x-text="tQuote('plant') + (selectedQuoteForPDF.Planta || 'N/A')"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('part_number') + (selectedQuoteForPDF.Numero_Parte || 'N/A')"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('po') + (selectedQuoteForPDF.PO_Referencia || 'Pendiente')"></p>
+              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('status') + selectedQuoteForPDF.Estatus"></p>
             </div>
           </div>
 
@@ -2081,16 +2158,16 @@
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 12px;">
             <thead>
               <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left;">
-                <th style="padding: 10px; font-weight: bold; color: #475569;">Concepto / Descripción</th>
-                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;">Cantidad (Pzs)</th>
-                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;">P.U. Estimado</th>
-                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;">Monto Autorizado</th>
+                <th style="padding: 10px; font-weight: bold; color: #475569;" x-text="tQuote('col_concept')">Concepto / Descripción</th>
+                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;" x-text="tQuote('col_qty')">Cantidad (Pzs)</th>
+                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;" x-text="tQuote('col_unit_price')">P.U. Estimado</th>
+                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;" x-text="tQuote('col_authorized')">Monto Autorizado</th>
               </tr>
             </thead>
             <tbody>
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 12px 10px; font-weight: 500;">
-                  Servicio de Inspección, Control y Sorteo de Calidad
+                  <span x-text="tQuote('service_desc')">Servicio de Inspección, Control y Sorteo de Calidad</span>
                   <span style="display: block; font-size: 10px; color: #94a3b8; margin-top: 3px;" x-text="'No. Parte: ' + (selectedQuoteForPDF.Numero_Parte || 'N/A') + ' | Planta: ' + (selectedQuoteForPDF.Planta || 'N/A')"></span>
                 </td>
                 <td style="padding: 12px 10px; text-align: right; font-family: monospace;" x-text="selectedQuoteForPDF.Piezas_Autorizadas || 0"></td>
@@ -2104,15 +2181,15 @@
           <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
             <div style="width: 250px; border-top: 2px solid #e2e8f0; padding-top: 10px;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px;">
-                <span>Subtotal:</span>
+                <span x-text="tQuote('subtotal')">Subtotal:</span>
                 <span style="font-family: monospace;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado)"></span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px;">
-                <span>I.V.A. (16%):</span>
+                <span x-text="tQuote('tax')">I.V.A. (16%):</span>
                 <span style="font-family: monospace;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado * 0.16)"></span>
               </div>
               <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; color: #1e293b; border-top: 1px solid #f1f5f9; padding-top: 6px;">
-                <span>Total (MXN):</span>
+                <span x-text="tQuote('total')">Total (MXN):</span>
                 <span style="font-family: monospace;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado * 1.16)"></span>
               </div>
             </div>
@@ -2120,7 +2197,7 @@
 
           <!-- Notes & Terms -->
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; font-size: 10px; line-height: 1.5; color: #64748b;">
-            <h4 style="margin-top: 0; margin-bottom: 8px; font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase;">Notas, Políticas y Condiciones</h4>
+            <h4 style="margin-top: 0; margin-bottom: 8px; font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase;" x-text="tQuote('terms_title')">Notas, Políticas y Condiciones</h4>
             <div style="white-space: pre-wrap;" x-text="selectedQuoteForPDF.Notas_Politicas || '-' "></div>
           </div>
 
@@ -2128,15 +2205,17 @@
           <div style="display: flex; justify-content: space-around; margin-top: 50px; text-align: center; font-size: 11px;">
             <div style="width: 200px; border-top: 1px solid #cbd5e1; padding-top: 8px;">
               <p style="margin: 0; font-weight: bold; color: #475569;">Best Quality Solutions</p>
-              <p style="margin: 2px 0 0 0; color: #94a3b8;">Representante Autorizado</p>
+              <p style="margin: 2px 0 0 0; color: #94a3b8;" x-text="tQuote('sig_rep')">Representante Autorizado</p>
             </div>
             <div style="width: 200px; border-top: 1px solid #cbd5e1; padding-top: 8px;">
               <p style="margin: 0; font-weight: bold; color: #475569;" x-text="selectedQuoteForPDFClient.Nombre_Fiscal || selectedQuoteForPDFClient.Nombre_Comercial"></p>
-              <p style="margin: 2px 0 0 0; color: #94a3b8;">Aceptación de Cliente</p>
+              <p style="margin: 2px 0 0 0; color: #94a3b8;" x-text="tQuote('sig_client')">Aceptación de Cliente</p>
             </div>
           </div>
         </div>
       </template>
+    </div>
+  </div>
   <!-- MODAL: INSPECCIONAR DETALLE DE AUDITORÍA -->
   <div x-show="logsData.inspectingLog" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm" style="display: none;">
     <div class="bg-white rounded-3xl max-w-xl w-full p-6 border border-slate-200 shadow-2xl space-y-4">

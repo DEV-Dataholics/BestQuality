@@ -10,5 +10,7 @@ class FacturaModel extends Model
     protected $primaryKey       = 'Folio_Factura';
     protected $useAutoIncrement = false;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['Folio_Factura', 'cfdiUUID', 'ID_Cliente', 'Fecha_Emision', 'Monto_Subtotal', 'Monto_Total', 'Moneda', 'Fecha_Vencimiento', 'Estatus_Pago', 'ID_Cotizacion'];
+    protected $useSoftDeletes   = true;
+    protected $deletedField     = 'deleted_at';
+    protected $allowedFields    = ['Folio_Factura', 'cfdiUUID', 'ID_Cliente', 'Fecha_Emision', 'Monto_Subtotal', 'Monto_Total', 'Moneda', 'Fecha_Vencimiento', 'Estatus_Pago', 'ID_Cotizacion', 'deleted_at'];
 }

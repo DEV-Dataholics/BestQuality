@@ -10,5 +10,7 @@ class CotizacionModel extends Model
     protected $primaryKey       = 'ID_Cotizacion';
     protected $useAutoIncrement = false;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['ID_Cotizacion', 'ID_Cliente', 'PO_Referencia', 'Monto_Autorizado', 'Piezas_Autorizadas', 'Estatus', 'Evidencia', 'Numero_Parte', 'Planta', 'Notas_Politicas', 'Numero_Remision'];
+    protected $useSoftDeletes   = true;
+    protected $deletedField     = 'deleted_at';
+    protected $allowedFields    = ['ID_Cotizacion', 'ID_Cliente', 'PO_Referencia', 'Monto_Autorizado', 'Piezas_Autorizadas', 'Estatus', 'Evidencia', 'Numero_Parte', 'Planta', 'Notas_Politicas', 'Numero_Remision', 'deleted_at'];
 }

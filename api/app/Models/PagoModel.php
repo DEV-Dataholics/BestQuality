@@ -10,5 +10,7 @@ class PagoModel extends Model
     protected $primaryKey       = 'ID_Pago';
     protected $useAutoIncrement = false;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['ID_Pago', 'Folio_Factura', 'Fecha_Pago', 'Monto_Pagado', 'Referencia'];
+    protected $useSoftDeletes   = true;
+    protected $deletedField     = 'deleted_at';
+    protected $allowedFields    = ['ID_Pago', 'Folio_Factura', 'Fecha_Pago', 'Monto_Pagado', 'Referencia', 'deleted_at'];
 }

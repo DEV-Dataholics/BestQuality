@@ -10,5 +10,7 @@ class ClienteModel extends Model
     protected $primaryKey       = 'ID_Cliente';
     protected $useAutoIncrement = false;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['ID_Cliente', 'Nombre_Fiscal', 'Nombre_Comercial', 'RFC', 'Estatus', 'Direccion', 'CP'];
+    protected $useSoftDeletes   = true;
+    protected $deletedField     = 'deleted_at';
+    protected $allowedFields    = ['ID_Cliente', 'Nombre_Fiscal', 'Nombre_Comercial', 'RFC', 'Estatus', 'Direccion', 'CP', 'deleted_at'];
 }

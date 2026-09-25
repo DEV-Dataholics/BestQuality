@@ -98,7 +98,72 @@ document.addEventListener('alpine:init', () => {
             pagos: { search: '', factura: '' },
             porfacturar: { search: '', cliente: '' },
             porcobrar: { search: '', cliente: '' },
-            logs: { search: '', modulo: '' }
+            logs: { search: '', modulo: '' },
+            reportes: { start: '', end: '', cliente: '' }
+        },
+
+        pdfLang: 'es',
+
+        quoteTranslations: {
+            es: {
+                doc_title: 'COTIZACIÓN / REMISIÓN',
+                client_box: 'Cliente',
+                offer_box: 'Detalles de la Oferta',
+                rfc: 'RFC: ',
+                address: 'Dirección: ',
+                zip: 'C.P.: ',
+                plant: 'Planta: ',
+                part_number: 'Número de Parte: ',
+                po: 'Orden Compra (PO): ',
+                status: 'Estatus: ',
+                col_concept: 'Concepto / Descripción',
+                col_qty: 'Cantidad (Pzs)',
+                col_unit_price: 'P.U. Estimado',
+                col_authorized: 'Monto Autorizado',
+                service_desc: 'Servicio de Inspección, Control y Sorteo de Calidad',
+                subtotal: 'Subtotal:',
+                tax: 'I.V.A. (16%):',
+                total: 'Total (MXN):',
+                terms_title: 'Notas, Políticas y Condiciones',
+                sig_rep: 'Representante Autorizado',
+                sig_client: 'Aceptación de Cliente',
+                remision: 'Remisión: ',
+                date: 'Fecha: '
+            },
+            en: {
+                doc_title: 'QUOTE / PACKING SLIP',
+                client_box: 'Client / Customer',
+                offer_box: 'Proposal Details',
+                rfc: 'Tax ID / RFC: ',
+                address: 'Address: ',
+                zip: 'Zip Code: ',
+                plant: 'Plant / Facility: ',
+                part_number: 'Part Number: ',
+                po: 'Purchase Order (PO): ',
+                status: 'Status: ',
+                col_concept: 'Concept / Description',
+                col_qty: 'Quantity (Pcs)',
+                col_unit_price: 'Est. Unit Price',
+                col_authorized: 'Authorized Amount',
+                service_desc: 'Quality Inspection, Containment and Sorting Services',
+                subtotal: 'Subtotal:',
+                tax: 'Tax / VAT (16%):',
+                total: 'Total (MXN):',
+                terms_title: 'Terms, Policies and Operating Conditions',
+                sig_rep: 'Authorized Representative',
+                sig_client: 'Customer Acceptance',
+                remision: 'Packing Slip: ',
+                date: 'Date: '
+            }
+        },
+
+        tQuote(key) {
+            const lang = this.pdfLang || 'es';
+            return (this.quoteTranslations[lang] && this.quoteTranslations[lang][key]) || key;
+        },
+
+        togglePdfLang(lang) {
+            this.pdfLang = lang;
         },
 
         logsData: {
@@ -225,9 +290,7 @@ document.addEventListener('alpine:init', () => {
                 .then(data => { this.pagosData = data; });
 
             // 7. Cargar Reportes
-            fetch('/api/reportes/resumen')
-                .then(res => res.json())
-                .then(data => { this.reportData = data; });
+            this.loadExecutiveReport();
 
             // 8. Cargar Facturacion Historica
             fetch('/api/reportes/historico')
@@ -537,7 +600,10 @@ document.addEventListener('alpine:init', () => {
             return 'COT-' + String(maxNum + 1).padStart(4, '0');
         },
 
-        exportQuoteToPDF(cot) {
+        exportQuoteToPDF(cot, lang = null) {
+            if (lang) {
+                this.pdfLang = lang;
+            }
             this.selectedQuoteForPDF = cot;
             const client = this.clientes.find(c => c.ID_Cliente === cot.ID_Cliente);
             this.selectedQuoteForPDFClient = client || { Nombre_Fiscal: 'Cliente Desconocido', RFC: '', Direccion: '', CP: '' };
@@ -546,9 +612,10 @@ document.addEventListener('alpine:init', () => {
                 const element = document.getElementById('quote-pdf-template');
                 if (!element) return;
                 
+                const prefix = this.pdfLang === 'en' ? 'Quote' : 'Cotizacion';
                 const opt = {
                     margin:       10,
-                    filename:     `Cotizacion_${cot.ID_Cotizacion}.pdf`,
+                    filename:     `${prefix}_${cot.ID_Cotizacion}.pdf`,
                     image:        { type: 'jpeg', quality: 0.98 },
                     html2canvas:  { scale: 2 },
                     jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' }
@@ -576,20 +643,33 @@ document.addEventListener('alpine:init', () => {
             formData.append('foto', file);
 
             fetch('/api/cotizaciones/upload', { method: 'POST', body: formData })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(err => { throw new Error(err.message || 'Error del servidor al subir evidencia.'); });
+                    }
+                    return res.json();
+                })
                 .then(data => {
-                    if (data.status === 'success') {
+                    if (data.status === 'success' && data.path) {
                         const updateForm = new FormData();
                         updateForm.append('Evidencia', data.path);
-                        fetch(`/api/cotizaciones/update/${cotId}`, { method: 'POST', body: updateForm })
-                            .then(res => res.json())
+                        return fetch(`/api/cotizaciones/update/${cotId}`, { method: 'POST', body: updateForm })
+                            .then(res => {
+                                if (!res.ok) {
+                                    return res.json().then(err => { throw new Error(err.message || 'Error al vincular evidencia a la cotización.'); });
+                                }
+                                return res.json();
+                            })
                             .then(() => {
                                 this.loadAllData();
-                                alert('Evidencia de aprobación cargada con éxito.');
+                                alert('✅ Evidencia de aprobación cargada y vinculada con éxito.');
                             });
                     } else {
-                        alert('Error al subir evidencia: ' + (data.message || 'Error desconocido'));
+                        throw new Error(data.message || 'No se recibió la ruta del archivo.');
                     }
+                })
+                .catch(err => {
+                    alert('⚠️ Error al adjuntar evidencia: ' + err.message);
                 });
         },
 
@@ -852,6 +932,36 @@ document.addEventListener('alpine:init', () => {
             .catch(err => {
                 alert('Error al subir imagen: ' + err.message);
             });
+        },
+
+        loadExecutiveReport() {
+            let url = '/api/reportes/resumen';
+            const params = [];
+            if (this.filters.reportes.start) {
+                params.push('fecha_inicio=' + encodeURIComponent(this.filters.reportes.start));
+            }
+            if (this.filters.reportes.end) {
+                params.push('fecha_fin=' + encodeURIComponent(this.filters.reportes.end));
+            }
+            if (this.filters.reportes.cliente) {
+                params.push('id_cliente=' + encodeURIComponent(this.filters.reportes.cliente));
+            }
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    this.reportData = data;
+                })
+                .catch(err => {
+                    console.error('Error al cargar reporte ejecutivo:', err);
+                });
+        },
+
+        resetReportFilters() {
+            this.filters.reportes = { start: '', end: '', cliente: '' };
+            this.loadExecutiveReport();
         },
 
         // ------------------------------------------------------------------------

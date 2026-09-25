@@ -48,6 +48,14 @@ class ApiController extends BaseController
         // Auto-fix 0-amount invoices to Cancelada status
         $db->query("UPDATE FACTURAS SET Estatus_Pago = 'Cancelada' WHERE Monto_Total = 0.00 AND Estatus_Pago != 'Cancelada'");
 
+        // Auto-alter deleted_at for Soft Deletes
+        $softDeleteTables = ['CAT_CLIENTES', 'COTIZACIONES', 'BITACORA_SORTEO', 'FACTURAS', 'PAGOS', 'CAT_CLIENTE_PLANTAS'];
+        foreach ($softDeleteTables as $t) {
+            if (!$db->fieldExists('deleted_at', $t)) {
+                $db->query("ALTER TABLE `{$t}` ADD COLUMN deleted_at DATETIME DEFAULT NULL");
+            }
+        }
+
         // Create CAT_CLIENTE_PLANTAS table
         $db->query("CREATE TABLE IF NOT EXISTS `CAT_CLIENTE_PLANTAS` (
             `ID_Planta` INT AUTO_INCREMENT PRIMARY KEY,
@@ -290,35 +298,29 @@ class ApiController extends BaseController
         $facturaModel = new FacturaModel();
         $sorteoModel = new SorteoModel();
         $pagoModel = new PagoModel();
+        $db = \Config\Database::connect();
 
-        // 1. ¿Qué ya se facturó? (Mes en curso, Vigente o Pagada)
-        $firstDayOfMonth = date('Y-m-01');
-        $lastDayOfMonth = date('Y-m-t');
+        // Pipeline 1: ¿Qué está Cotizado? (Monto de cotizaciones activas aprobadas o pendientes)
+        $queryCotizado = $db->query("
+            SELECT SUM(Monto_Autorizado) AS total 
+            FROM COTIZACIONES 
+            WHERE deleted_at IS NULL AND Estatus IN ('Aprobada', 'Pendiente')
+        ")->getRow();
+        $totalCotizado = $queryCotizado->total ?? 0.00;
 
-        $queryFacturado = $facturaModel->db->query("
-            SELECT SUM(Monto_Total) AS total 
-            FROM FACTURAS 
-            WHERE Fecha_Emision >= ? AND Fecha_Emision <= ? 
-            AND Estatus_Pago IN ('Vigente', 'Pagada')
-        ", [$firstDayOfMonth, $lastDayOfMonth])->getRow();
-        
-        $facturadoMes = $queryFacturado->total ?? 0.00;
-
-        // 2. ¿Qué falta por facturar? (Trabajo Devengado no Facturado)
+        // Pipeline 2: ¿Qué falta por facturar? (Trabajo Devengado pendiente de facturación)
         $queryDevengado = $sorteoModel->db->query("
             SELECT SUM(Monto_Devengado) AS total 
             FROM BITACORA_SORTEO 
-            WHERE Estatus_Facturacion = 'Pendiente'
+            WHERE Estatus_Facturacion = 'Pendiente' AND deleted_at IS NULL
         ")->getRow();
-        
         $faltaFacturar = $queryDevengado->total ?? 0.00;
 
-        // 3. ¿Cuánto dinero te deben? (Facturas activas - Pagos aplicados)
-        // Tomamos todas las facturas Vigentes o Vencidas y restamos sus pagos
+        // Pipeline 3: ¿Cuánto dinero está pendiente de cobro? (Facturas vigentes/vencidas menos abonos)
         $queryFacturasActivas = $facturaModel->db->query("
             SELECT Folio_Factura, Monto_Total 
             FROM FACTURAS 
-            WHERE Estatus_Pago IN ('Vigente', 'Vencida')
+            WHERE Estatus_Pago IN ('Vigente', 'Vencida') AND deleted_at IS NULL
         ")->getResultArray();
 
         $saldoDeudor = 0.00;
@@ -326,12 +328,32 @@ class ApiController extends BaseController
             $queryPagos = $pagoModel->db->query("
                 SELECT SUM(Monto_Pagado) AS total_pagado 
                 FROM PAGOS 
-                WHERE Folio_Factura = ?
+                WHERE Folio_Factura = ? AND deleted_at IS NULL
             ", [$fac['Folio_Factura']])->getRow();
             
             $pagado = $queryPagos->total_pagado ?? 0.00;
             $saldoDeudor += ($fac['Monto_Total'] - $pagado);
         }
+
+        // Pipeline 4: ¿Cuánto dinero ya se cobró / recaudó? (Total de pagos registrados)
+        $queryTotalPagos = $db->query("
+            SELECT SUM(Monto_Pagado) AS total 
+            FROM PAGOS 
+            WHERE deleted_at IS NULL
+        ")->getRow();
+        $totalPagado = $queryTotalPagos->total ?? 0.00;
+
+        // Facturado en el mes en curso (Métricas ejecutivas complementarias)
+        $firstDayOfMonth = date('Y-m-01');
+        $lastDayOfMonth = date('Y-m-t');
+
+        $queryFacturado = $facturaModel->db->query("
+            SELECT SUM(Monto_Total) AS total 
+            FROM FACTURAS 
+            WHERE Fecha_Emision >= ? AND Fecha_Emision <= ? 
+            AND Estatus_Pago IN ('Vigente', 'Pagada') AND deleted_at IS NULL
+        ", [$firstDayOfMonth, $lastDayOfMonth])->getRow();
+        $facturadoMes = $queryFacturado->total ?? 0.00;
 
         // Desglose por cotización para la sección "¿Qué falta por facturar?"
         $desgloseFaltaFacturar = $sorteoModel->db->query("
@@ -343,15 +365,20 @@ class ApiController extends BaseController
             FROM BITACORA_SORTEO s
             INNER JOIN COTIZACIONES c ON s.ID_Cotizacion = c.ID_Cotizacion
             INNER JOIN CAT_CLIENTES cl ON c.ID_Cliente = cl.ID_Cliente
-            WHERE s.Estatus_Facturacion = 'Pendiente'
+            WHERE s.Estatus_Facturacion = 'Pendiente' 
+              AND s.deleted_at IS NULL 
+              AND c.deleted_at IS NULL 
+              AND cl.deleted_at IS NULL
             GROUP BY c.ID_Cotizacion, cl.Nombre_Comercial
         ")->getResultArray();
 
         return $this->respond([
             'resumen' => [
-                'facturado_mes'  => (float)$facturadoMes,
+                'total_cotizado' => (float)$totalCotizado,
                 'falta_facturar' => (float)$faltaFacturar,
-                'deuda_total'    => (float)$saldoDeudor
+                'deuda_total'    => (float)$saldoDeudor,
+                'total_pagado'   => (float)$totalPagado,
+                'facturado_mes'  => (float)$facturadoMes
             ],
             'desglose_por_facturar' => $desgloseFaltaFacturar
         ]);
@@ -416,12 +443,11 @@ class ApiController extends BaseController
 
     public function getCotizaciones()
     {
-        $model = new CotizacionModel();
-        // Cargar cotizaciones cruzadas con el nombre de cliente
         $db = \Config\Database::connect();
         $builder = $db->table('COTIZACIONES c');
         $builder->select('c.*, cl.Nombre_Comercial AS Cliente');
         $builder->join('CAT_CLIENTES cl', 'c.ID_Cliente = cl.ID_Cliente');
+        $builder->where('c.deleted_at IS NULL');
         return $this->respond($builder->get()->getResultArray());
     }
 
@@ -432,6 +458,7 @@ class ApiController extends BaseController
         $builder->select('s.*, cl.Nombre_Comercial AS Cliente');
         $builder->join('COTIZACIONES c', 's.ID_Cotizacion = c.ID_Cotizacion');
         $builder->join('CAT_CLIENTES cl', 'c.ID_Cliente = cl.ID_Cliente');
+        $builder->where('s.deleted_at IS NULL');
         return $this->respond($builder->get()->getResultArray());
     }
 
@@ -441,6 +468,7 @@ class ApiController extends BaseController
         $builder = $db->table('FACTURAS f');
         $builder->select('f.*, cl.Nombre_Comercial AS Cliente');
         $builder->join('CAT_CLIENTES cl', 'f.ID_Cliente = cl.ID_Cliente');
+        $builder->where('f.deleted_at IS NULL');
         return $this->respond($builder->get()->getResultArray());
     }
 
@@ -946,6 +974,7 @@ class ApiController extends BaseController
         $builder->select('p.*, f.ID_Cliente, cl.Nombre_Comercial AS Cliente');
         $builder->join('FACTURAS f', 'p.Folio_Factura = f.Folio_Factura');
         $builder->join('CAT_CLIENTES cl', 'f.ID_Cliente = cl.ID_Cliente');
+        $builder->where('p.deleted_at IS NULL');
         return $this->respond($builder->get()->getResultArray());
     }
 
@@ -1018,7 +1047,23 @@ class ApiController extends BaseController
     public function getExecutiveReport()
     {
         $db = \Config\Database::connect();
-        
+        $fechaInicio = $this->request->getGet('fecha_inicio');
+        $fechaFin    = $this->request->getGet('fecha_fin');
+        $idCliente   = $this->request->getGet('id_cliente');
+
+        $whereFactura = "f.deleted_at IS NULL";
+        if (!empty($fechaInicio)) {
+            $whereFactura .= " AND f.Fecha_Emision >= " . $db->escape($fechaInicio);
+        }
+        if (!empty($fechaFin)) {
+            $whereFactura .= " AND f.Fecha_Emision <= " . $db->escape($fechaFin);
+        }
+
+        $whereCliente = "cl.deleted_at IS NULL";
+        if (!empty($idCliente)) {
+            $whereCliente .= " AND cl.ID_Cliente = " . $db->escape($idCliente);
+        }
+
         // Pesos (MXN)
         $pesos = $db->query("
             SELECT 
@@ -1036,11 +1081,14 @@ class ApiController extends BaseController
                 LEFT JOIN (
                     SELECT Folio_Factura, SUM(Monto_Pagado) AS total_pagado
                     FROM PAGOS
+                    WHERE deleted_at IS NULL
                     GROUP BY Folio_Factura
                 ) p ON f.Folio_Factura = p.Folio_Factura
                 WHERE f.Moneda IN ('Peso Mexicano', 'MXN', 'MXP')
+                  AND {$whereFactura}
                 GROUP BY f.ID_Cliente
             ) fact ON cl.ID_Cliente = fact.ID_Cliente
+            WHERE {$whereCliente}
             ORDER BY cl.Nombre_Comercial ASC
         ")->getResultArray();
 
@@ -1061,11 +1109,14 @@ class ApiController extends BaseController
                 LEFT JOIN (
                     SELECT Folio_Factura, SUM(Monto_Pagado) AS total_pagado
                     FROM PAGOS
+                    WHERE deleted_at IS NULL
                     GROUP BY Folio_Factura
                 ) p ON f.Folio_Factura = p.Folio_Factura
                 WHERE f.Moneda IN ('Dolar americano', 'USD', 'US Dollar')
+                  AND {$whereFactura}
                 GROUP BY f.ID_Cliente
             ) fact ON cl.ID_Cliente = fact.ID_Cliente
+            WHERE {$whereCliente}
             ORDER BY cl.Nombre_Comercial ASC
         ")->getResultArray();
 
@@ -1094,34 +1145,47 @@ class ApiController extends BaseController
 
     public function uploadCotizacionEvidencia()
     {
-        $file = $this->request->getFile('foto');
-        if (!$file || !$file->isValid()) {
-            return $this->fail('No se pudo subir la foto o el archivo no es válido.');
-        }
+        try {
+            $file = $this->request->getFile('foto');
+            if (!$file || !$file->isValid()) {
+                return $this->fail('No se seleccionó ningún archivo o el archivo no es válido.');
+            }
 
-        if (!in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'])) {
-            return $this->fail('El archivo debe ser una imagen válida (jpeg, png, gif, webp).');
-        }
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+            if (!in_array($file->getMimeType(), $allowedMimes)) {
+                return $this->fail('Formato no permitido. Solo se aceptan imágenes (JPG, PNG, WEBP) o documentos PDF.');
+            }
 
-        // Save to public uploads (dynamic fallback for local vs production)
-        $uploadPath = ROOTPATH . '../uploads/';
-        if (is_dir(ROOTPATH . '../public_html/')) {
-            $uploadPath = ROOTPATH . '../public_html/uploads/';
-        }
-        if (!is_dir($uploadPath)) {
-            mkdir($uploadPath, 0777, true);
-        }
+            // Save to public uploads (dynamic fallback for local vs production)
+            $uploadPath = ROOTPATH . '../uploads/';
+            if (is_dir(ROOTPATH . '../public_html/uploads/')) {
+                $uploadPath = ROOTPATH . '../public_html/uploads/';
+            } elseif (is_dir(ROOTPATH . '../public_html/')) {
+                $uploadPath = ROOTPATH . '../public_html/uploads/';
+            }
 
-        $newName = $file->getRandomName();
-        if ($file->move($uploadPath, $newName)) {
-            $this->recordLog('COTIZACIONES', 'EVIDENCIA', "Evidencia fotográfica subida: {$newName}");
-            return $this->respond([
-                'status' => 'success',
-                'path'   => 'uploads/' . $newName
-            ]);
-        }
+            if (!is_dir($uploadPath)) {
+                @mkdir($uploadPath, 0777, true);
+            }
+            if (!is_writable($uploadPath)) {
+                @chmod($uploadPath, 0777);
+            }
 
-        return $this->fail('No se pudo guardar la imagen en el servidor.');
+            $newName = $file->getRandomName();
+            if ($file->move($uploadPath, $newName)) {
+                $this->recordLog('COTIZACIONES', 'EVIDENCIA', "Evidencia fotográfica subida: {$newName}");
+                return $this->respond([
+                    'status'  => 'success',
+                    'path'    => 'uploads/' . $newName,
+                    'message' => 'Archivo de evidencia cargado exitosamente.'
+                ]);
+            }
+
+            return $this->fail('No se pudo guardar el archivo en el servidor. Verifica los permisos de almacenamiento.');
+        } catch (\Throwable $e) {
+            log_message('error', 'Error en uploadCotizacionEvidencia: ' . $e->getMessage());
+            return $this->fail('Error en el servidor al procesar la evidencia: ' . $e->getMessage());
+        }
     }
 
     public function getMigracionAudit()
