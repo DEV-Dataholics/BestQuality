@@ -2118,98 +2118,201 @@
   <div style="display: none;">
     <div id="quote-pdf-template" style="padding: 20px; font-family: sans-serif; color: #334155; font-size: 13px;" x-if="selectedQuoteForPDF">
       <template x-if="selectedQuoteForPDF">
-        <div style="padding: 10px;">
-          <!-- Header -->
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 15px; margin-bottom: 20px;">
-            <div>
-              <h1 style="font-size: 22px; font-weight: bold; color: #1e293b; margin: 0;">Best Quality Solutions</h1>
-              <p style="margin: 3px 0 0 0; font-size: 11px; color: #64748b;">S.A. de C.V. | RFC: BQS120813DF5</p>
-              <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">Servicios de Calidad, Sorteo e Inspección de Componentes</p>
+        <div style="padding: 10px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; font-size: 11px;">
+          <!-- Top Header -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 12px;">
+            <div style="width: 25%;">
+              <div style="display: flex; align-items: baseline; gap: 4px;">
+                <span style="color: #0b4f9e; font-weight: 900; font-size: 28px; line-height: 1;">bqs</span>
+                <span style="font-size: 9px; color: #334155; font-weight: bold; line-height: 1.1;">Best Quality Solutions</span>
+              </div>
             </div>
-            <div style="text-align: right;">
-              <h2 style="font-size: 16px; font-weight: bold; color: #4338ca; margin: 0;" x-text="tQuote('doc_title')">COTIZACIÓN / REMISIÓN</h2>
-              <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: bold; font-family: monospace; color: #1e293b;" x-text="selectedQuoteForPDF.ID_Cotizacion"></p>
-              <template x-if="selectedQuoteForPDF.Numero_Remision">
-                <p style="margin: 2px 0 0 0; font-size: 11px; font-weight: bold; color: #0f766e; font-family: monospace;" x-text="tQuote('remision') + selectedQuoteForPDF.Numero_Remision"></p>
-              </template>
-              <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;" x-text="tQuote('date') + new Date().toLocaleDateString()"></p>
+            <div style="width: 50%; text-align: center;">
+              <h2 style="font-size: 14px; font-weight: bold; margin: 0; color: #000;" x-text="tQuote('company_name')">Best Quality Solutions México SA de CV</h2>
+              <p style="font-size: 11px; margin: 2px 0; color: #0284c7; font-weight: 700;" x-text="tQuote('company_tagline')">Sorting.Inspection.Rework</p>
+              <p style="font-size: 9.5px; margin: 1px 0; color: #334155;">Fuente de Troya #4209 Col. Jardines de lago C.P. 32616</p>
+              <p style="font-size: 9.5px; margin: 1px 0; color: #334155;">Tel (656) 170-37-96</p>
             </div>
-          </div>
-
-          <!-- Info columns -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 25px; gap: 20px;">
-            <div style="flex: 1; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">
-              <h3 style="margin-top: 0; font-size: 12px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;" x-text="tQuote('client_box')">Cliente</h3>
-              <p style="margin: 4px 0; font-weight: bold;" x-text="selectedQuoteForPDFClient.Nombre_Fiscal || selectedQuoteForPDFClient.Nombre_Comercial"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('rfc') + selectedQuoteForPDFClient.RFC"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('address') + (selectedQuoteForPDFClient.Direccion || 'N/A')"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('zip') + (selectedQuoteForPDFClient.CP || 'N/A')"></p>
-            </div>
-            <div style="flex: 1; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">
-              <h3 style="margin-top: 0; font-size: 12px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;" x-text="tQuote('offer_box')">Detalles de la Oferta</h3>
-              <p style="margin: 4px 0; font-size: 11px;" x-text="tQuote('plant') + (selectedQuoteForPDF.Planta || 'N/A')"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('part_number') + (selectedQuoteForPDF.Numero_Parte || 'N/A')"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('po') + (selectedQuoteForPDF.PO_Referencia || 'Pendiente')"></p>
-              <p style="margin: 2px 0; font-size: 11px;" x-text="tQuote('status') + selectedQuoteForPDF.Estatus"></p>
+            <div style="width: 25%; text-align: right;">
+              <!-- Spacer for balance -->
             </div>
           </div>
 
-          <!-- Items Table -->
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 12px;">
-            <thead>
-              <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left;">
-                <th style="padding: 10px; font-weight: bold; color: #475569;" x-text="tQuote('col_concept')">Concepto / Descripción</th>
-                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;" x-text="tQuote('col_qty')">Cantidad (Pzs)</th>
-                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;" x-text="tQuote('col_unit_price')">P.U. Estimado</th>
-                <th style="padding: 10px; font-weight: bold; color: #475569; text-align: right;" x-text="tQuote('col_authorized')">Monto Autorizado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding: 12px 10px; font-weight: 500;">
-                  <span x-text="tQuote('service_desc')">Servicio de Inspección, Control y Sorteo de Calidad</span>
-                  <span style="display: block; font-size: 10px; color: #94a3b8; margin-top: 3px;" x-text="'No. Parte: ' + (selectedQuoteForPDF.Numero_Parte || 'N/A') + ' | Planta: ' + (selectedQuoteForPDF.Planta || 'N/A')"></span>
-                </td>
-                <td style="padding: 12px 10px; text-align: right; font-family: monospace;" x-text="selectedQuoteForPDF.Piezas_Autorizadas || 0"></td>
-                <td style="padding: 12px 10px; text-align: right; font-family: monospace;" x-text="formatCurrency((selectedQuoteForPDF.Monto_Autorizado / (selectedQuoteForPDF.Piezas_Autorizadas || 1)))"></td>
-                <td style="padding: 12px 10px; text-align: right; font-family: monospace; font-weight: bold;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado)"></td>
-              </tr>
-            </tbody>
+          <!-- CLIENT & QUOTE Blocks -->
+          <div style="display: flex; justify-content: space-between; gap: 20px; margin-bottom: 10px;">
+            <!-- Left: CLIENT -->
+            <div style="flex: 1.2;">
+              <h3 style="color: #dc2626; font-size: 13px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: 0.05em;" x-text="tQuote('client_title')">CLIENT</h3>
+              <table style="width: 100%; font-size: 10.5px; border-collapse: collapse;">
+                <tr>
+                  <td style="font-weight: bold; width: 95px; padding: 2px 0;" x-text="tQuote('plant_name')">Plant Name:</td>
+                  <td style="padding: 2px 0;" x-text="selectedQuoteForPDF.Planta || selectedQuoteForPDFClient.Nombre_Comercial || selectedQuoteForPDFClient.Nombre_Fiscal"></td>
+                </tr>
+                <tr>
+                  <td style="font-weight: bold; padding: 2px 0;" x-text="tQuote('requestor')">Requestor:</td>
+                  <td style="padding: 2px 0;" x-text="selectedQuoteForPDFClient.Nombre_Fiscal || selectedQuoteForPDFClient.Nombre_Comercial"></td>
+                </tr>
+                <tr>
+                  <td style="font-weight: bold; padding: 2px 0;" x-text="tQuote('address')">Address:</td>
+                  <td style="padding: 2px 0;" x-text="(selectedQuoteForPDFClient.Direccion || '') + (selectedQuoteForPDFClient.CP ? ' C.P. ' + selectedQuoteForPDFClient.CP : '')"></td>
+                </tr>
+                <tr>
+                  <td style="font-weight: bold; padding: 2px 0;" x-text="tQuote('rfc')">RFC:</td>
+                  <td style="padding: 2px 0;" x-text="selectedQuoteForPDFClient.RFC || 'N/A'"></td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Right: QUOTE -->
+            <div style="flex: 0.9;">
+              <h3 style="color: #0284c7; font-size: 14px; font-weight: 800; margin: 0 0 6px 0; text-align: right; letter-spacing: 0.05em;" x-text="tQuote('quote_title')">QUOTE</h3>
+              <table style="width: 100%; border: 1.5px solid #000; border-collapse: collapse; font-size: 10.5px;">
+                <tr>
+                  <td style="border: 1px solid #000; padding: 3px 6px; font-weight: bold; width: 65px;" x-text="tQuote('number')">Number:</td>
+                  <td style="border: 1px solid #000; padding: 3px 6px; font-family: monospace; font-weight: bold;" x-text="selectedQuoteForPDF.ID_Cotizacion + (selectedQuoteForPDF.Numero_Remision ? ' / Rem: ' + selectedQuoteForPDF.Numero_Remision : '')"></td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #000; padding: 3px 6px; font-weight: bold;" x-text="tQuote('date')">Date:</td>
+                  <td style="border: 1px solid #000; padding: 3px 6px;" x-text="new Date().toLocaleDateString()"></td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #000; padding: 3px 6px; font-size: 9px; vertical-align: middle;">APPROVED VIA (EXPLAIN)</td>
+                  <td style="border: 1px solid #000; padding: 3px 6px; text-align: center; font-weight: bold;" x-text="selectedQuoteForPDF.Estatus === 'Aprobada' ? '[ X ]' : '[   ]'"></td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #000; padding: 3px 6px; font-size: 9px; vertical-align: middle;">NOT APPROVED</td>
+                  <td style="border: 1px solid #000; padding: 3px 6px; text-align: center; font-weight: bold;" x-text="selectedQuoteForPDF.Estatus !== 'Aprobada' ? '[ X ]' : '[   ]'"></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- ACTIVITY Box -->
+          <table style="width: 100%; border: 1.5px solid #000; border-collapse: collapse; font-size: 11px;">
+            <tr style="border-bottom: 1.5px solid #000; background-color: #f8fafc;">
+              <th style="padding: 4px 8px; font-weight: bold; text-align: center; width: 80%;" x-text="tQuote('activity')">ACTIVITY</th>
+              <th style="border-left: 1.5px solid #000; padding: 4px 8px; font-weight: bold; text-align: center; width: 20%;" x-text="tQuote('total_price')">Total Price</th>
+            </tr>
+            <tr>
+              <td style="padding: 6px 12px;">
+                <div style="display: flex; justify-content: space-around; align-items: center; font-size: 10px; font-weight: bold;">
+                  <span>SORTING <span style="display: inline-block; width: 14px; height: 14px; border: 1px solid #000; vertical-align: middle; text-align: center; line-height: 14px; margin-left: 4px;">X</span></span>
+                  <span>REWORK <span style="display: inline-block; width: 14px; height: 14px; border: 1px solid #000; vertical-align: middle; text-align: center; line-height: 14px; margin-left: 4px;"></span></span>
+                  <span>OTHER (EXPLAIN) <span style="display: inline-block; width: 14px; height: 14px; border: 1px solid #000; vertical-align: middle; text-align: center; line-height: 14px; margin-left: 4px;"></span></span>
+                </div>
+              </td>
+              <td style="border-left: 1.5px solid #000; padding: 6px 8px; text-align: right; font-weight: bold; font-family: monospace; font-size: 12px;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado)"></td>
+            </tr>
           </table>
 
-          <!-- Totals -->
-          <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
-            <div style="width: 250px; border-top: 2px solid #e2e8f0; padding-top: 10px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px;">
-                <span x-text="tQuote('subtotal')">Subtotal:</span>
-                <span style="font-family: monospace;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado)"></span>
+          <!-- 1. DESCRIPTION JOB / 2. LOCATION / 3. QUANTITY / DATES / COMMENTS -->
+          <div style="border: 1.5px solid #000; border-top: none; padding: 8px 10px; font-size: 10.5px;">
+            <div style="margin-bottom: 6px;">
+              <strong style="color: #1d4ed8;" x-text="tQuote('desc_job')">1. DESCRIPTION JOB</strong>
+              <div style="padding-left: 15px; margin-top: 2px;" x-text="selectedQuoteForPDF.Notas_Politicas || 'Servicio de Inspección, Control y Sorteo de Calidad'"></div>
+            </div>
+            
+            <div style="margin-bottom: 6px;">
+              <strong style="color: #1d4ed8;" x-text="tQuote('location')">2. LOCATION</strong>
+              <div style="padding-left: 15px; margin-top: 2px;" x-text="selectedQuoteForPDF.Planta || 'Instalaciones BQS / En Planta'"></div>
+            </div>
+
+            <div style="margin-bottom: 8px;">
+              <strong style="color: #1d4ed8;" x-text="tQuote('quantity')">3. QUANTITY</strong>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-left: 15px;">
+                <table style="width: 55%; border: 1px solid #000; border-collapse: collapse; font-size: 9.5px; text-align: center;">
+                  <tr style="background-color: #f1f5f9;">
+                    <th style="border: 1px solid #000; padding: 3px;" x-text="tQuote('part_number_col')">Part Number</th>
+                    <th style="border: 1px solid #000; padding: 3px;" x-text="tQuote('quantity_col')">Quantity</th>
+                    <th style="border: 1px solid #000; padding: 3px;" x-text="tQuote('total_col')">TOTAL</th>
+                  </tr>
+                  <tr>
+                    <td style="border: 1px solid #000; padding: 3px;" x-text="selectedQuoteForPDF.Numero_Parte || 'TBD'"></td>
+                    <td style="border: 1px solid #000; padding: 3px;" x-text="selectedQuoteForPDF.Piezas_Autorizadas || 0"></td>
+                    <td style="border: 1px solid #000; padding: 3px; font-weight: bold;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado)"></td>
+                  </tr>
+                </table>
+                <div style="text-align: right; width: 40%;">
+                  <span style="color: #dc2626; font-weight: bold; font-size: 11px;" x-text="tQuote('total_charge') + ': '">TOTAL CHARGE: </span>
+                  <span style="font-weight: bold; font-family: monospace; font-size: 13px;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado)"></span>
+                </div>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px;">
-                <span x-text="tQuote('tax')">I.V.A. (16%):</span>
-                <span style="font-family: monospace;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado * 0.16)"></span>
+            </div>
+
+            <div style="margin-bottom: 4px;">
+              <strong style="color: #1d4ed8;" x-text="tQuote('start_date')">2. START DATE:</strong>
+              <span style="padding-left: 8px;" x-text="tQuote('from_auth')">From Authorization</span>
+            </div>
+
+            <div style="margin-bottom: 6px;">
+              <strong style="color: #1d4ed8;" x-text="tQuote('finish_date')">3. FINISH DATE:</strong>
+              <span style="padding-left: 8px;">Al agotar piezas autorizadas o notificación del cliente</span>
+            </div>
+
+            <div style="margin-bottom: 4px;">
+              <strong style="color: #1d4ed8;" x-text="tQuote('comments')">4. ADDITIONAL COMMENTS:</strong>
+              <div style="padding-left: 15px; margin-top: 2px; font-weight: bold; color: #b91c1c; font-size: 10px;" x-text="tQuote('comments_text')"></div>
+            </div>
+          </div>
+
+          <!-- ADDITIONAL CHARGES & TOTAL COST -->
+          <div style="border: 1.5px solid #000; border-top: none; font-size: 9.5px;">
+            <div style="background-color: #f1f5f9; padding: 3px 8px; font-weight: bold; color: #1d4ed8;" x-text="tQuote('additional_charges')">ADITIONAL CHARGES</div>
+            <div style="padding: 4px 8px; line-height: 1.35;">
+              <div x-text="tQuote('supervisory_fee')">Supervisory Fee: Included.</div>
+              <div x-text="tQuote('transport_fee')">Transportation Fee: IN CASE MATERIAL HAS TO BE TRANSPORTED TO BQS FACILITIES AN EXTRA</div>
+              <div x-text="tQuote('personnel_transport')">Personnel Transportation: Included.</div>
+              <div x-text="tQuote('special_tooling')">Special Tooling, Equipment or Material for the Event: Not Included.</div>
+              <div>Others: -</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #000; padding: 6px 12px; background-color: #f8fafc;">
+              <div>
+                <span style="font-weight: bold; font-size: 11.5px;" x-text="tQuote('total_cost') + ': '">TOTAL COST: </span>
+                <span style="font-weight: 800; font-size: 14px; font-family: monospace;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado)"></span>
               </div>
-              <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; color: #1e293b; border-top: 1px solid #f1f5f9; padding-top: 6px;">
-                <span x-text="tQuote('total')">Total (MXN):</span>
-                <span style="font-family: monospace;" x-text="formatCurrency(selectedQuoteForPDF.Monto_Autorizado * 1.16)"></span>
+              <div style="font-size: 8.5px; font-style: italic; color: #64748b;" x-text="tQuote('quote_validity')">
+                This quote is subject to revision 7 days from the above date.
               </div>
             </div>
           </div>
 
-          <!-- Notes & Terms -->
-          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; font-size: 10px; line-height: 1.5; color: #64748b;">
-            <h4 style="margin-top: 0; margin-bottom: 8px; font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase;" x-text="tQuote('terms_title')">Notas, Políticas y Condiciones</h4>
-            <div style="white-space: pre-wrap;" x-text="selectedQuoteForPDF.Notas_Politicas || '-' "></div>
+          <!-- TERMS AND CONDITIONS (Official BQS Policy) -->
+          <div style="margin-top: 8px; font-size: 8px; line-height: 1.25; color: #334155;">
+            <div style="text-align: center; font-weight: bold; color: #1d4ed8; margin-bottom: 3px;" x-text="tQuote('terms_header')">TERMS AND CONDITIONS</div>
+            <p style="margin: 1px 0;"><strong>*** 1.</strong> BQS will charge a minimum daily rate for sorting or reworks of less than standard operational shifts to cover operational costs.</p>
+            <p style="margin: 1px 0;"><strong>2.</strong> Upon acceptance of costs and/or standards (rates) given, no changes will be accepted without new terms/standards (rates) established and agreed upon by both parties in writing.</p>
+            
+            <div style="margin-top: 3px;">
+              <strong x-text="tQuote('bqs_responsibilities')">BQS Responsibilities:</strong>
+              <div style="padding-left: 6px;">a) Daily inspection reports & graphics | b) Work instructions | c) Supervision | d) A trilateral communication between supplier-BQS-client</div>
+            </div>
+
+            <div style="margin-top: 3px;">
+              <strong x-text="tQuote('client_responsibilities')">CLIENT Responsibilities:</strong>
+              <div style="padding-left: 6px;">a) Work instructions, qty. to sort, defective material photos. | b) Company’s complete name, billing & mailing address, phone, and accounts payable contact.</div>
+            </div>
+
+            <div style="margin-top: 3px;">
+              <strong x-text="tQuote('warranties')">Warranties:</strong>
+              <div style="padding-left: 6px;">a) BQS is a company that carries out quality sortings and rework services and is only responsible for failed inspections where guarantee is limited to material reinspection. Services do not cover field impact. | b) Client will notify problem in writing. | c) Client will provide defect evidence (Tracking Label and Defective Part).</div>
+            </div>
+
+            <div style="margin-top: 3px;">
+              <strong x-text="tQuote('idle_time')">Idle Time (Non Productive Hours apply when):</strong>
+              <div style="padding-left: 6px;">1) Personnel are at plant and material has not been provided. | 2) Personnel must wait for plant authorization. | 3) Defect criteria has not been established between Client and Supplier.</div>
+            </div>
           </div>
 
-          <!-- Signatures -->
-          <div style="display: flex; justify-content: space-around; margin-top: 50px; text-align: center; font-size: 11px;">
-            <div style="width: 200px; border-top: 1px solid #cbd5e1; padding-top: 8px;">
-              <p style="margin: 0; font-weight: bold; color: #475569;">Best Quality Solutions</p>
-              <p style="margin: 2px 0 0 0; color: #94a3b8;" x-text="tQuote('sig_rep')">Representante Autorizado</p>
+          <!-- Signatures & Official Form Code -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px; font-size: 9px; border-top: 1px solid #94a3b8; padding-top: 6px;">
+            <div style="width: 48%;">
+              <span x-text="tQuote('auth_signature')">I, ___________________________ authorize the quote established above</span>
             </div>
-            <div style="width: 200px; border-top: 1px solid #cbd5e1; padding-top: 8px;">
-              <p style="margin: 0; font-weight: bold; color: #475569;" x-text="selectedQuoteForPDFClient.Nombre_Fiscal || selectedQuoteForPDFClient.Nombre_Comercial"></p>
-              <p style="margin: 2px 0 0 0; color: #94a3b8;" x-text="tQuote('sig_client')">Aceptación de Cliente</p>
+            <div style="width: 26%; text-align: center;">
+              <span x-text="tQuote('signature') + ' ___________________________'">Signature: ___________________________</span>
+            </div>
+            <div style="width: 24%; text-align: right; font-weight: bold; color: #475569;" x-text="tQuote('doc_code')">
+              FRM BQS-08-01-C Rev. Feb 08, 2019
             </div>
           </div>
         </div>
