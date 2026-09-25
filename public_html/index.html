@@ -1151,12 +1151,39 @@
                 </button>
               </div>
 
+              <!-- Barra de Acciones Masivas -->
+              <div x-show="selectedFacturas.length > 0" class="flex flex-wrap items-center justify-between bg-indigo-50 border border-indigo-200 rounded-2xl p-4 shadow-sm transition-all" style="display: none;">
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold shadow-sm" x-text="selectedFacturas.length"></span>
+                  <div>
+                    <p class="text-xs font-bold text-indigo-950">Facturas seleccionadas</p>
+                    <p class="text-[11px] text-indigo-600">Puedes ejecutar acciones en lote para los folios marcados</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 pt-2 sm:pt-0">
+                  <button @click="showBulkStatusModal = true" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-indigo-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm transition">
+                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    Cambiar Estatus
+                  </button>
+                  <button @click="deleteSelectedFacturas()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold text-white shadow-sm transition">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    Borrar Selección
+                  </button>
+                  <button @click="selectedFacturas = []" class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+
               <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                 <div class="p-6">
                   <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                       <thead>
                         <tr class="text-xs text-slate-400 uppercase text-left tracking-wider font-semibold">
+                          <th class="pb-3 w-10 text-center">
+                            <input type="checkbox" @change="toggleSelectAllFacturas()" :checked="isAllFacturasSelected()" class="rounded border-slate-300 text-bqs focus:ring-bqs cursor-pointer">
+                          </th>
                           <th class="pb-3">Folio</th>
                           <th class="pb-3">Cliente</th>
                           <th class="pb-3">Emisión</th>
@@ -1167,8 +1194,11 @@
                         </tr>
                       </thead>
                       <tbody class="divide-y divide-slate-100">
-                        <template x-for="fac in getFilteredFacturas()">
-                          <tr>
+                        <template x-for="fac in getFilteredFacturas()" :key="fac.Folio_Factura">
+                          <tr :class="selectedFacturas.includes(fac.Folio_Factura) ? 'bg-indigo-50/40' : 'hover:bg-slate-50/50'" class="transition">
+                            <td class="py-3 text-center">
+                              <input type="checkbox" :value="fac.Folio_Factura" x-model="selectedFacturas" class="rounded border-slate-300 text-bqs focus:ring-bqs cursor-pointer">
+                            </td>
                             <td class="py-3 font-mono font-medium text-slate-900" x-text="fac.Folio_Factura"></td>
                             <td class="py-3 text-slate-700 font-medium" x-text="fac.Cliente"></td>
                             <td class="py-3 text-slate-500" x-text="fac.Fecha_Emision"></td>
@@ -1188,6 +1218,11 @@
                               <button @click="openEditModal('factura', fac)" class="text-slate-500 hover:text-slate-700 font-medium">Editar</button>
                               <button @click="deleteItem('factura', fac.Folio_Factura)" class="text-red-600 hover:text-red-700 font-medium">Borrar</button>
                             </td>
+                          </tr>
+                        </template>
+                        <template x-if="getFilteredFacturas().length === 0">
+                          <tr>
+                            <td colspan="8" class="py-8 text-center text-slate-400">No se encontraron facturas con los filtros seleccionados.</td>
                           </tr>
                         </template>
                       </tbody>
@@ -2070,6 +2105,40 @@
     </div>
   </div>
 
+  <!-- MODAL: CAMBIO DE ESTATUS MASIVO DE FACTURAS -->
+  <div x-show="showBulkStatusModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 border border-slate-200 shadow-xl space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Cambiar Estatus en Lote</h3>
+          <p class="text-xs text-slate-500" x-text="selectedFacturas.length + ' facturas seleccionadas'"></p>
+        </div>
+        <button @click="showBulkStatusModal = false" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+      </div>
+
+      <div class="space-y-3">
+        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider">Nuevo Estatus a Aplicar</label>
+        <select x-model="bulkStatusValue" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm focus:outline-none focus:border-bqs">
+          <option value="Cancelada">Cancelada</option>
+          <option value="Vigente">Vigente</option>
+          <option value="Pagada">Pagada</option>
+          <option value="Vencida">Vencida</option>
+          <option value="Pago Parcial">Pago Parcial</option>
+        </select>
+        <p class="text-xs text-slate-500">Todas las facturas marcadas actualizarán su estatus inmediatamente.</p>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-3 border-t border-slate-100">
+        <button @click="showBulkStatusModal = false" class="rounded-xl border border-slate-200 py-2 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
+          Cancelar
+        </button>
+        <button @click="applyBulkStatus()" class="rounded-xl bg-bqs hover:bg-bqs-hover py-2 px-5 text-sm font-semibold text-white shadow-sm transition">
+          Aplicar Cambio
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: PAGO / ABONO -->
   <div x-show="showModal === 'pago'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
     <div class="bg-white rounded-3xl max-w-md w-full p-8 border border-slate-200 shadow-xl space-y-6">
@@ -2342,6 +2411,6 @@
   </div>
 
   <!-- LÓGICA ALPINE.JS -->
-  <script src="app.js?v=202609251645"></script>
+  <script src="app.js?v=202609251720"></script>
 </body>
 </html>

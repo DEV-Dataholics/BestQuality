@@ -25,8 +25,8 @@ def upload_directory(ftp, local_dir, remote_dir):
         local_path = os.path.join(local_dir, name)
         remote_path = f"{remote_dir}/{name}"
         
-        # Ignorar archivos del sistema local y el script de deploy mismo
-        if name in ['.git', '.gitignore', 'deploy_ftp.py', 'test_reconciliation.py', 'database.sql', 'install_ci4.py', 'seed.php', 'extracted_temp', 'unpack_walkthrough.py', 'system', 'user_guide', 'tests']:
+        # Ignorar archivos del sistema local, temporales y librerías base de CI4
+        if name in ['.git', '.gitignore', 'deploy_ftp.py', 'test_reconciliation.py', 'database.sql', 'install_ci4.py', 'seed.php', 'extracted_temp', 'unpack_walkthrough.py', 'system', 'writable', 'tests', 'vendor']:
             continue
             
         if os.path.isdir(local_path):

@@ -83,6 +83,10 @@ document.addEventListener('alpine:init', () => {
         selectedQuoteForPDFClient: null,
         postCaptureQuoteId: '',
 
+        selectedFacturas: [],
+        showBulkStatusModal: false,
+        bulkStatusValue: 'Cancelada',
+
         clientForm: { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo', Direccion: '', CP: '' },
         cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '', Numero_Parte: '', Planta: '', Notas_Politicas: '', Numero_Remision: '' },
         devengadoForm: { ID_Captura: '', Fecha: '', ID_Cotizacion: '', Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0, Estatus_Facturacion: 'Pendiente' },
@@ -918,6 +922,71 @@ document.addEventListener('alpine:init', () => {
             })
             .catch(err => {
                 alert(err.message);
+            });
+        },
+
+        // ------------------------------------------------------------------------
+        // ACCIONES MASIVAS: FACTURAS
+        // ------------------------------------------------------------------------
+        toggleSelectAllFacturas() {
+            const filtered = this.getFilteredFacturas();
+            if (this.isAllFacturasSelected()) {
+                this.selectedFacturas = [];
+            } else {
+                this.selectedFacturas = filtered.map(f => f.Folio_Factura);
+            }
+        },
+
+        isAllFacturasSelected() {
+            const filtered = this.getFilteredFacturas();
+            if (!filtered || filtered.length === 0) return false;
+            return filtered.every(f => this.selectedFacturas.includes(f.Folio_Factura));
+        },
+
+        deleteSelectedFacturas() {
+            if (this.selectedFacturas.length === 0) return;
+            const count = this.selectedFacturas.length;
+            if (!confirm(`¿Estás seguro de que deseas eliminar las ${count} facturas seleccionadas? Esta acción aplicará borrado lógico.`)) {
+                return;
+            }
+
+            fetch('/api/facturas/batch-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folios: this.selectedFacturas })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || `Se procesó la eliminación de las facturas.`);
+                this.selectedFacturas = [];
+                this.loadAllData();
+            })
+            .catch(err => {
+                alert('Error al eliminar facturas masivamente: ' + err.message);
+            });
+        },
+
+        applyBulkStatus() {
+            if (this.selectedFacturas.length === 0) return;
+            if (!this.bulkStatusValue) return;
+
+            fetch('/api/facturas/batch-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    folios: this.selectedFacturas,
+                    estatus: this.bulkStatusValue
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || `Se actualizó el estatus de las facturas.`);
+                this.showBulkStatusModal = false;
+                this.selectedFacturas = [];
+                this.loadAllData();
+            })
+            .catch(err => {
+                alert('Error al actualizar estatus masivamente: ' + err.message);
             });
         },
 

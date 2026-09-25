@@ -35,6 +35,8 @@ $routes->post('devengado/delete/(:segment)', 'ApiController::deleteDevengado/$1'
 // Facturas
 $routes->get('facturas', 'ApiController::getFacturas');
 $routes->post('facturas', 'ApiController::createFactura');
+$routes->post('facturas/batch-delete', 'ApiController::batchDeleteFacturas');
+$routes->post('facturas/batch-status', 'ApiController::batchUpdateStatusFacturas');
 $routes->post('facturas/update/(:segment)', 'ApiController::updateFactura/$1');
 $routes->post('facturas/delete/(:segment)', 'ApiController::deleteFactura/$1');
 $routes->get('facturas/(:segment)', 'ApiController::getFacturaDetalle/$1');
@@ -96,6 +98,8 @@ $routes->group('api', function($routes) {
     // Facturas
     $routes->get('facturas', 'ApiController::getFacturas');
     $routes->post('facturas', 'ApiController::createFactura');
+    $routes->post('facturas/batch-delete', 'ApiController::batchDeleteFacturas');
+    $routes->post('facturas/batch-status', 'ApiController::batchUpdateStatusFacturas');
     $routes->post('facturas/update/(:segment)', 'ApiController::updateFactura/$1');
     $routes->post('facturas/delete/(:segment)', 'ApiController::deleteFactura/$1');
     $routes->get('facturas/(:segment)', 'ApiController::getFacturaDetalle/$1');

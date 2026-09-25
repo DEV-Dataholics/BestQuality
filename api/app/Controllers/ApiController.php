@@ -1030,6 +1030,100 @@ class ApiController extends BaseController
         return $this->failValidationError('No se pudo eliminar la factura.');
     }
 
+    public function batchDeleteFacturas()
+    {
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        $folios = $input['folios'] ?? [];
+        if (is_string($folios)) {
+            $folios = json_decode($folios, true);
+        }
+        if (empty($folios) || !is_array($folios)) {
+            return $this->failValidationError('No se especificaron folios de facturas para eliminar.');
+        }
+
+        $facturaModel = new FacturaModel();
+        $pagoModel = new PagoModel();
+
+        $deletedCount = 0;
+        $skipped = [];
+
+        foreach ($folios as $folio) {
+            $folio = trim($folio);
+            if (empty($folio)) continue;
+
+            // Verificar si tiene pagos asociados no eliminados
+            $existePago = $pagoModel->where('Folio_Factura', $folio)->where('deleted_at IS NULL')->first();
+            if ($existePago) {
+                $skipped[] = "{$folio} (tiene pagos asociados)";
+                continue;
+            }
+
+            if ($facturaModel->delete($folio)) {
+                $deletedCount++;
+            }
+        }
+
+        $this->recordLog('FACTURAS', 'ELIMINAR_MASIVO', "Eliminación masiva: {$deletedCount} facturas eliminadas.", [
+            'total_solicitados' => count($folios),
+            'eliminados' => $deletedCount,
+            'omitidos' => $skipped
+        ]);
+
+        $msg = "Se eliminaron {$deletedCount} facturas.";
+        if (!empty($skipped)) {
+            $msg .= " (" . count($skipped) . " omitidas por tener pagos asociados: " . implode(', ', array_slice($skipped, 0, 3)) . (count($skipped) > 3 ? '...' : '') . ")";
+        }
+
+        return $this->respond([
+            'status'  => 'success',
+            'deleted' => $deletedCount,
+            'skipped' => $skipped,
+            'message' => $msg
+        ]);
+    }
+
+    public function batchUpdateStatusFacturas()
+    {
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        $folios = $input['folios'] ?? [];
+        $newStatus = trim($input['estatus'] ?? '');
+
+        if (is_string($folios)) {
+            $folios = json_decode($folios, true);
+        }
+        if (empty($folios) || !is_array($folios) || empty($newStatus)) {
+            return $this->failValidationError('Datos incompletos para actualización masiva.');
+        }
+
+        $validStatuses = ['Vigente', 'Pagada', 'Vencida', 'Pago Parcial', 'Cancelada'];
+        if (!in_array($newStatus, $validStatuses)) {
+            return $this->failValidationError("Estatus inválido: {$newStatus}");
+        }
+
+        $facturaModel = new FacturaModel();
+        $updatedCount = 0;
+
+        foreach ($folios as $folio) {
+            $folio = trim($folio);
+            if (empty($folio)) continue;
+
+            if ($facturaModel->update($folio, ['Estatus_Pago' => $newStatus])) {
+                $updatedCount++;
+            }
+        }
+
+        $this->recordLog('FACTURAS', 'ESTATUS_MASIVO', "Cambio de estatus masivo a '{$newStatus}' para {$updatedCount} facturas.", [
+            'nuevo_estatus' => $newStatus,
+            'total_actualizados' => $updatedCount
+        ]);
+
+        return $this->respond([
+            'status'  => 'success',
+            'updated' => $updatedCount,
+            'message' => "Se actualizó el estatus a '{$newStatus}' en {$updatedCount} facturas."
+        ]);
+    }
+
     // ------------------------------------------------------------------------
     // CRUD: PAGOS
     // ------------------------------------------------------------------------
