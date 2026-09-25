@@ -260,6 +260,10 @@ document.addEventListener('alpine:init', () => {
         },
 
         init() {
+            if (!this.filters) this.filters = {};
+            if (!this.filters.reportes) {
+                this.filters.reportes = { start: '', end: '', cliente: '' };
+            }
             const savedEmail = localStorage.getItem('bqs_user_email');
             const savedRole = localStorage.getItem('bqs_user_role');
             if (savedEmail && savedRole) {

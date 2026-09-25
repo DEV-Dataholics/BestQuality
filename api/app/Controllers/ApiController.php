@@ -647,6 +647,7 @@ class ApiController extends BaseController
         $force = $this->request->getPost('force') === 'true';
         $facturaModel = new FacturaModel();
         $pagoModel = new PagoModel();
+        $clienteModel = new ClienteModel();
         
         $logs = [];
         $conciliados = 0;
@@ -689,42 +690,107 @@ class ApiController extends BaseController
                     $doctos = $pago->xpath('.//pago20:DoctoRelacionado');
 
                     foreach ($doctos as $doc) {
-                        $uuid = (string)$doc['IdDocumento'];
+                        $uuid = trim((string)$doc['IdDocumento']);
                         $impPagado = floatval((string)$doc['ImpPagado']);
+                        $impSaldoAnt = floatval((string)$doc['ImpSaldoAnt']);
                         $impSaldoInsoluto = floatval((string)$doc['ImpSaldoInsoluto']);
-                        $folio = (string)$doc['Folio'];
+                        $folio = trim((string)$doc['Folio']);
+                        $serie = trim((string)$doc['Serie']);
+                        $monedaDR = trim((string)$doc['MonedaDR']);
 
-                        // Buscar factura por UUID
-                        $factura = $facturaModel->where('cfdiUUID', $uuid)->first();
+                        // 1. Buscar factura por UUID (insensible a mayúsculas/minúsculas)
+                        $factura = $facturaModel->where('LOWER(cfdiUUID)', strtolower($uuid))->first();
 
-                        if ($factura) {
-                            // Verificar riesgo de duplicidad
-                            $existe = $pagoModel->where([
-                                'Folio_Factura' => $factura['Folio_Factura'],
-                                'Fecha_Pago'    => $fechaPago,
-                                'Monto_Pagado'  => $impPagado
-                            ])->first();
+                        // 2. Fallback: Buscar por Folio si no se encontró por UUID
+                        if (!$factura && !empty($folio)) {
+                            $factura = $facturaModel->where('Folio_Factura', 'F-' . $folio)
+                                ->orWhere('Folio_Factura', $folio)
+                                ->orWhere('Folio_Factura', $serie . '-' . $folio)
+                                ->orWhere('Folio_Factura', $serie . $folio)
+                                ->first();
 
-                            if ($existe) {
-                                $duplicates[] = [
-                                    'Folio_Factura' => $factura['Folio_Factura'],
-                                    'Fecha_Pago'    => $fechaPago,
-                                    'Monto_Pagado'  => $impPagado,
-                                    'Referencia'    => 'XML Pago Relacionado a Folio ' . $folio
-                                ];
+                            if ($factura && (empty($factura['cfdiUUID']) || $factura['cfdiUUID'] === 'Pendiente')) {
+                                $facturaModel->update($factura['Folio_Factura'], ['cfdiUUID' => $uuid]);
+                            }
+                        }
+
+                        // 3. Fallback: Auto-registrar como "Factura en el Aire" si la factura es de periodos anteriores
+                        if (!$factura) {
+                            $receptorRfc = (string)($xml->xpath('//cfdi:Receptor/@Rfc')[0] ?? '');
+                            $receptorNombre = (string)($xml->xpath('//cfdi:Receptor/@Nombre')[0] ?? '');
+
+                            $cliente = null;
+                            if ($receptorRfc) {
+                                $cliente = $clienteModel->where('RFC', $receptorRfc)->first();
+                            }
+                            if (!$cliente && $receptorNombre) {
+                                $cliente = $clienteModel->like('Nombre_Fiscal', $receptorNombre)->orLike('Nombre_Comercial', $receptorNombre)->first();
                             }
 
-                            $pendingInserts[] = [
-                                'ID_Pago'       => 'PAG-' . uniqid(),
+                            if (!$cliente) {
+                                $maxId = $clienteModel->selectMax('ID_Cliente')->first();
+                                $num = 1;
+                                if ($maxId && preg_match('/CLI-(\d+)/', $maxId['ID_Cliente'], $matches)) {
+                                    $num = intval($matches[1]) + 1;
+                                }
+                                $idClt = 'CLI-' . str_pad($num, 3, '0', STR_PAD_LEFT);
+                                $clienteModel->insert([
+                                    'ID_Cliente'       => $idClt,
+                                    'Nombre_Fiscal'    => $receptorNombre ?: 'CLIENTE XML ' . $receptorRfc,
+                                    'Nombre_Comercial' => $receptorNombre ?: 'CLIENTE XML ' . $receptorRfc,
+                                    'RFC'              => $receptorRfc ?: 'XAXX010101000',
+                                    'Estatus'          => 'Activo'
+                                ]);
+                                $targetClientId = $idClt;
+                            } else {
+                                $targetClientId = $cliente['ID_Cliente'];
+                            }
+
+                            $folioFactura = !empty($folio) ? 'F-' . $folio : 'F-' . substr($uuid, 0, 8);
+                            $montoFactura = ($impSaldoAnt > 0) ? $impSaldoAnt : $impPagado;
+
+                            $nuevaFactura = [
+                                'Folio_Factura'     => $folioFactura,
+                                'cfdiUUID'          => $uuid,
+                                'ID_Cliente'        => $targetClientId,
+                                'Fecha_Emision'     => $fechaPago,
+                                'Monto_Subtotal'    => $montoFactura,
+                                'Monto_Total'       => $montoFactura,
+                                'Moneda'            => ($monedaDR === 'USD' ? 'Dolar americano' : 'Peso Mexicano'),
+                                'Fecha_Vencimiento' => $fechaPago,
+                                'Estatus_Pago'      => ($impSaldoInsoluto == 0.0 ? 'Pagada' : 'Pago Parcial'),
+                                'ID_Cotizacion'     => null
+                            ];
+                            $facturaModel->insert($nuevaFactura);
+                            $factura = $nuevaFactura;
+
+                            $logs[] = "Aviso: Factura {$folioFactura} no estaba en catálogo; se registró como Factura en el Aire y se vinculó al pago de {$impPagado} {$monedaDR}.";
+                        }
+
+                        // Registrar o preparar inserción del pago
+                        $existe = $pagoModel->where([
+                            'Folio_Factura' => $factura['Folio_Factura'],
+                            'Fecha_Pago'    => $fechaPago,
+                            'Monto_Pagado'  => $impPagado
+                        ])->first();
+
+                        if ($existe) {
+                            $duplicates[] = [
                                 'Folio_Factura' => $factura['Folio_Factura'],
                                 'Fecha_Pago'    => $fechaPago,
                                 'Monto_Pagado'  => $impPagado,
-                                'Referencia'    => 'XML Pago Relacionado a Folio ' . $folio,
-                                'impSaldoInsoluto' => $impSaldoInsoluto
+                                'Referencia'    => 'XML Pago Relacionado a Folio ' . $folio
                             ];
-                        } else {
-                            $logs[] = "Error de Conciliación en {$file->getName()}: El UUID {$uuid} no existe en el catálogo.";
                         }
+
+                        $pendingInserts[] = [
+                            'ID_Pago'       => 'PAG-' . uniqid(),
+                            'Folio_Factura' => $factura['Folio_Factura'],
+                            'Fecha_Pago'    => $fechaPago,
+                            'Monto_Pagado'  => $impPagado,
+                            'Referencia'    => 'XML Pago Relacionado a Folio ' . $folio,
+                            'impSaldoInsoluto' => $impSaldoInsoluto
+                        ];
                     }
                 }
             } catch (\Exception $e) {
