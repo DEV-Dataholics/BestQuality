@@ -95,13 +95,14 @@ document.addEventListener('alpine:init', () => {
 
         // Filters
         filters: {
+            dashboard: { start: '', end: '', cliente: '' },
             clientes: { search: '', estatus: '' },
             cotizaciones: { search: '', cliente: '', estatus: '' },
             devengado: { search: '', cliente: '', start: '', end: '' },
             facturas: { search: '', cliente: '', estatus: '' },
             pagos: { search: '', factura: '' },
             porfacturar: { search: '', cliente: '' },
-            porcobrar: { search: '', cliente: '' },
+            porcobrar: { search: '', cliente: '', start: '', end: '' },
             logs: { search: '', modulo: '' },
             reportes: { start: '', end: '', cliente: '' }
         },
@@ -339,9 +340,7 @@ document.addEventListener('alpine:init', () => {
             if (!this.isLoggedIn) return;
 
             // 1. Cargar Dashboard
-            fetch('/api/dashboard/resumen')
-                .then(res => res.json())
-                .then(data => { this.dashboardData = data; });
+            this.loadDashboard();
 
             // 2. Cargar Clientes
             fetch('/api/clientes')
@@ -1089,6 +1088,36 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
+        loadDashboard() {
+            let url = '/api/dashboard/resumen';
+            const params = [];
+            if (this.filters.dashboard.start) {
+                params.push('fecha_inicio=' + encodeURIComponent(this.filters.dashboard.start));
+            }
+            if (this.filters.dashboard.end) {
+                params.push('fecha_fin=' + encodeURIComponent(this.filters.dashboard.end));
+            }
+            if (this.filters.dashboard.cliente) {
+                params.push('id_cliente=' + encodeURIComponent(this.filters.dashboard.cliente));
+            }
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    this.dashboardData = data;
+                })
+                .catch(err => {
+                    console.error('Error al cargar dashboard:', err);
+                });
+        },
+
+        resetDashboardFilters() {
+            this.filters.dashboard = { start: '', end: '', cliente: '' };
+            this.loadDashboard();
+        },
+
         loadExecutiveReport() {
             let url = '/api/reportes/resumen';
             const params = [];
@@ -1314,7 +1343,9 @@ document.addEventListener('alpine:init', () => {
                     item.Folio_Factura.toLowerCase().includes(this.filters.porcobrar.search.toLowerCase()) ||
                     item.Cliente.toLowerCase().includes(this.filters.porcobrar.search.toLowerCase());
                 const matchCliente = !this.filters.porcobrar.cliente || item.ID_Cliente === this.filters.porcobrar.cliente;
-                return matchSearch && matchCliente;
+                const matchStart = !this.filters.porcobrar.start || item.Fecha_Emision >= this.filters.porcobrar.start;
+                const matchEnd = !this.filters.porcobrar.end || item.Fecha_Emision <= this.filters.porcobrar.end;
+                return matchSearch && matchCliente && matchStart && matchEnd;
             });
         },
 

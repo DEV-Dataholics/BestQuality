@@ -291,7 +291,7 @@ class ApiController extends BaseController
     }
 
     // ------------------------------------------------------------------------
-    // ENDPOINT: Dashboard / Resumen (Las 3 Preguntas de Eric)
+    // ENDPOINT: Dashboard / Resumen (Las 3 Preguntas de Eric con Filtros de Temporalidad y Cliente)
     // ------------------------------------------------------------------------
     public function dashboard()
     {
@@ -300,27 +300,56 @@ class ApiController extends BaseController
         $pagoModel = new PagoModel();
         $db = \Config\Database::connect();
 
+        $fechaInicio = $this->request->getGet('fecha_inicio');
+        $fechaFin    = $this->request->getGet('fecha_fin');
+        $idCliente   = $this->request->getGet('id_cliente');
+
         // Pipeline 1: ¿Qué está Cotizado? (Monto de cotizaciones activas aprobadas o pendientes)
+        $whereCot = "deleted_at IS NULL AND Estatus IN ('Aprobada', 'Pendiente')";
+        if (!empty($idCliente)) {
+            $whereCot .= " AND ID_Cliente = " . $db->escape($idCliente);
+        }
         $queryCotizado = $db->query("
             SELECT SUM(Monto_Autorizado) AS total 
             FROM COTIZACIONES 
-            WHERE deleted_at IS NULL AND Estatus IN ('Aprobada', 'Pendiente')
+            WHERE {$whereCot}
         ")->getRow();
         $totalCotizado = $queryCotizado->total ?? 0.00;
 
         // Pipeline 2: ¿Qué falta por facturar? (Trabajo Devengado pendiente de facturación)
-        $queryDevengado = $sorteoModel->db->query("
-            SELECT SUM(Monto_Devengado) AS total 
-            FROM BITACORA_SORTEO 
-            WHERE Estatus_Facturacion = 'Pendiente' AND deleted_at IS NULL
+        $whereDev = "s.Estatus_Facturacion = 'Pendiente' AND s.deleted_at IS NULL";
+        if (!empty($fechaInicio)) {
+            $whereDev .= " AND s.Fecha >= " . $db->escape($fechaInicio);
+        }
+        if (!empty($fechaFin)) {
+            $whereDev .= " AND s.Fecha <= " . $db->escape($fechaFin);
+        }
+        if (!empty($idCliente)) {
+            $whereDev .= " AND c.ID_Cliente = " . $db->escape($idCliente);
+        }
+        $queryDevengado = $db->query("
+            SELECT SUM(s.Monto_Devengado) AS total 
+            FROM BITACORA_SORTEO s
+            INNER JOIN COTIZACIONES c ON s.ID_Cotizacion = c.ID_Cotizacion
+            WHERE {$whereDev}
         ")->getRow();
         $faltaFacturar = $queryDevengado->total ?? 0.00;
 
         // Pipeline 3: ¿Cuánto dinero está pendiente de cobro? (Facturas vigentes/vencidas menos abonos)
-        $queryFacturasActivas = $facturaModel->db->query("
+        $whereFac = "Estatus_Pago IN ('Vigente', 'Vencida') AND deleted_at IS NULL";
+        if (!empty($fechaInicio)) {
+            $whereFac .= " AND Fecha_Emision >= " . $db->escape($fechaInicio);
+        }
+        if (!empty($fechaFin)) {
+            $whereFac .= " AND Fecha_Emision <= " . $db->escape($fechaFin);
+        }
+        if (!empty($idCliente)) {
+            $whereFac .= " AND ID_Cliente = " . $db->escape($idCliente);
+        }
+        $queryFacturasActivas = $db->query("
             SELECT Folio_Factura, Monto_Total 
             FROM FACTURAS 
-            WHERE Estatus_Pago IN ('Vigente', 'Vencida') AND deleted_at IS NULL
+            WHERE {$whereFac}
         ")->getResultArray();
 
         $saldoDeudor = 0.00;
@@ -332,14 +361,25 @@ class ApiController extends BaseController
             ", [$fac['Folio_Factura']])->getRow();
             
             $pagado = $queryPagos->total_pagado ?? 0.00;
-            $saldoDeudor += ($fac['Monto_Total'] - $pagado);
+            $saldoDeudor += max(0, $fac['Monto_Total'] - $pagado);
         }
 
         // Pipeline 4: ¿Cuánto dinero ya se cobró / recaudó? (Total de pagos registrados)
+        $wherePagos = "p.deleted_at IS NULL";
+        if (!empty($fechaInicio)) {
+            $wherePagos .= " AND p.Fecha_Pago >= " . $db->escape($fechaInicio);
+        }
+        if (!empty($fechaFin)) {
+            $wherePagos .= " AND p.Fecha_Pago <= " . $db->escape($fechaFin);
+        }
+        if (!empty($idCliente)) {
+            $wherePagos .= " AND f.ID_Cliente = " . $db->escape($idCliente);
+        }
         $queryTotalPagos = $db->query("
-            SELECT SUM(Monto_Pagado) AS total 
-            FROM PAGOS 
-            WHERE deleted_at IS NULL
+            SELECT SUM(p.Monto_Pagado) AS total 
+            FROM PAGOS p
+            INNER JOIN FACTURAS f ON p.Folio_Factura = f.Folio_Factura
+            WHERE {$wherePagos}
         ")->getRow();
         $totalPagado = $queryTotalPagos->total ?? 0.00;
 
@@ -347,16 +387,33 @@ class ApiController extends BaseController
         $firstDayOfMonth = date('Y-m-01');
         $lastDayOfMonth = date('Y-m-t');
 
+        $whereFacturadoMes = "Fecha_Emision >= ? AND Fecha_Emision <= ? AND Estatus_Pago IN ('Vigente', 'Pagada') AND deleted_at IS NULL";
+        $paramsMes = [$firstDayOfMonth, $lastDayOfMonth];
+        if (!empty($idCliente)) {
+            $whereFacturadoMes .= " AND ID_Cliente = ?";
+            $paramsMes[] = $idCliente;
+        }
+
         $queryFacturado = $facturaModel->db->query("
             SELECT SUM(Monto_Total) AS total 
             FROM FACTURAS 
-            WHERE Fecha_Emision >= ? AND Fecha_Emision <= ? 
-            AND Estatus_Pago IN ('Vigente', 'Pagada') AND deleted_at IS NULL
-        ", [$firstDayOfMonth, $lastDayOfMonth])->getRow();
+            WHERE {$whereFacturadoMes}
+        ", $paramsMes)->getRow();
         $facturadoMes = $queryFacturado->total ?? 0.00;
 
         // Desglose por cotización para la sección "¿Qué falta por facturar?"
-        $desgloseFaltaFacturar = $sorteoModel->db->query("
+        $whereDesglose = "s.Estatus_Facturacion = 'Pendiente' AND s.deleted_at IS NULL AND c.deleted_at IS NULL AND cl.deleted_at IS NULL";
+        if (!empty($fechaInicio)) {
+            $whereDesglose .= " AND s.Fecha >= " . $db->escape($fechaInicio);
+        }
+        if (!empty($fechaFin)) {
+            $whereDesglose .= " AND s.Fecha <= " . $db->escape($fechaFin);
+        }
+        if (!empty($idCliente)) {
+            $whereDesglose .= " AND cl.ID_Cliente = " . $db->escape($idCliente);
+        }
+
+        $desgloseFaltaFacturar = $db->query("
             SELECT 
                 c.ID_Cotizacion,
                 cl.Nombre_Comercial AS Cliente,
@@ -365,10 +422,7 @@ class ApiController extends BaseController
             FROM BITACORA_SORTEO s
             INNER JOIN COTIZACIONES c ON s.ID_Cotizacion = c.ID_Cotizacion
             INNER JOIN CAT_CLIENTES cl ON c.ID_Cliente = cl.ID_Cliente
-            WHERE s.Estatus_Facturacion = 'Pendiente' 
-              AND s.deleted_at IS NULL 
-              AND c.deleted_at IS NULL 
-              AND cl.deleted_at IS NULL
+            WHERE {$whereDesglose}
             GROUP BY c.ID_Cotizacion, cl.Nombre_Comercial
         ")->getResultArray();
 
@@ -619,6 +673,22 @@ class ApiController extends BaseController
             } else {
                 $facturaModel->insert($facturaData);
             }
+
+            // Transicionar sorteos devengados y cotización al conciliar con la factura
+            if (!empty($idCotizacion)) {
+                $db = \Config\Database::connect();
+                $db->table('BITACORA_SORTEO')
+                    ->where('ID_Cotizacion', $idCotizacion)
+                    ->where('Estatus_Facturacion', 'Pendiente')
+                    ->where('deleted_at IS NULL')
+                    ->update(['Estatus_Facturacion' => 'Facturado']);
+
+                $db->table('COTIZACIONES')
+                    ->where('ID_Cotizacion', $idCotizacion)
+                    ->where('deleted_at IS NULL')
+                    ->update(['Estatus' => 'Facturada']);
+            }
+
             $importados++;
         }
 
@@ -817,8 +887,16 @@ class ApiController extends BaseController
                 'Referencia'    => $ins['Referencia']
             ]);
 
-            // Actualizar estatus de factura
+            // Actualizar estatus de factura: Pagada si el saldo insoluto es 0 o si la suma de pagos cubre el total
+            $db = \Config\Database::connect();
+            $totPagos = $db->query("SELECT SUM(Monto_Pagado) AS total_pagado FROM PAGOS WHERE Folio_Factura = ? AND deleted_at IS NULL", [$ins['Folio_Factura']])->getRow();
+            $facRow = $facturaModel->find($ins['Folio_Factura']);
+            
             $estatus = ($ins['impSaldoInsoluto'] == 0.0) ? 'Pagada' : 'Pago Parcial';
+            if ($facRow && floatval($totPagos->total_pagado ?? 0) >= floatval($facRow['Monto_Total'])) {
+                $estatus = 'Pagada';
+            }
+
             $facturaModel->update($ins['Folio_Factura'], [
                 'Estatus_Pago' => $estatus
             ]);
