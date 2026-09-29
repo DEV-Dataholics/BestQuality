@@ -625,27 +625,78 @@ class ApiController extends BaseController
             $montoSub = floatval(trim($data['Subtotal'] ?? '0.00'));
             $moneda = trim($data['Moneda'] ?? 'Peso Mexicano');
 
-            // Extract Remision code and match with Cotizacion
+            // Extract Quote, Remision, or PO and match with Cotizacion
             $concepto = trim($data['Primer Concepto'] ?? '');
             $idCotizacion = null;
-            if (preg_match('/(?:REMISION|REM\-)\s*([0-9]+(?:\/[0-9]+)?)/i', $concepto, $matches)) {
-                $fullRem = $matches[1];
-                $cleanRem = explode('/', $fullRem)[0];
-                
-                $db = \Config\Database::connect();
+            $db = \Config\Database::connect();
+
+            $quotes = [];
+            $rems = [];
+            $pos = [];
+
+            if (preg_match_all('/\b(?:QUOTE|COTIZACION|COT)\s*[:#\-]?\s*([0-9]+(?:\/[0-9]+)?)/i', $concepto, $qMatches)) {
+                $quotes = $qMatches[1];
+            }
+            if (preg_match_all('/\b(?:REMISION|REM)\s*[:#\-]?\s*([0-9]+(?:\/[0-9]+)?)/i', $concepto, $rMatches)) {
+                $rems = $rMatches[1];
+            }
+            if (preg_match_all('/\bPO\s*[:#\-]?\s*([A-Z0-9\-_]{3,})\b/i', $concepto, $poMatches)) {
+                $pos = $poMatches[1];
+            }
+
+            // 1. Intentar cruzar por Quote / Cotización
+            foreach ($quotes as $q) {
+                $cleanQ = explode('/', $q)[0];
+                $paddedQ = 'COT-' . str_pad($cleanQ, 4, '0', STR_PAD_LEFT);
                 $cot = $db->table('COTIZACIONES')
+                    ->where('deleted_at IS NULL')
                     ->groupStart()
-                        ->like('Numero_Remision', $cleanRem)
-                        ->orLike('Numero_Remision', $fullRem)
-                        ->orLike('ID_Cotizacion', $cleanRem)
-                        ->orLike('PO_Referencia', $cleanRem)
-                        ->orLike('ID_Cotizacion', $fullRem)
-                        ->orLike('PO_Referencia', $fullRem)
+                        ->where('ID_Cotizacion', $q)
+                        ->orWhere('ID_Cotizacion', $cleanQ)
+                        ->orWhere('ID_Cotizacion', $paddedQ)
+                        ->orLike('ID_Cotizacion', $cleanQ)
                     ->groupEnd()
                     ->get()
                     ->getRowArray();
                 if ($cot) {
                     $idCotizacion = $cot['ID_Cotizacion'];
+                    break;
+                }
+            }
+
+            // 2. Si no encontró por Quote, cruzar por Remisión
+            if (!$idCotizacion) {
+                foreach ($rems as $r) {
+                    $cleanR = explode('/', $r)[0];
+                    $cot = $db->table('COTIZACIONES')
+                        ->where('deleted_at IS NULL')
+                        ->groupStart()
+                            ->where('Numero_Remision', $r)
+                            ->orWhere('Numero_Remision', $cleanR)
+                            ->orLike('Numero_Remision', $cleanR)
+                            ->orLike('ID_Cotizacion', $cleanR)
+                        ->groupEnd()
+                        ->get()
+                        ->getRowArray();
+                    if ($cot) {
+                        $idCotizacion = $cot['ID_Cotizacion'];
+                        break;
+                    }
+                }
+            }
+
+            // 3. Si no encontró, cruzar por Orden de Compra (PO)
+            if (!$idCotizacion) {
+                foreach ($pos as $p) {
+                    $cot = $db->table('COTIZACIONES')
+                        ->where('deleted_at IS NULL')
+                        ->where('PO_Referencia', $p)
+                        ->get()
+                        ->getRowArray();
+                    if ($cot) {
+                        $idCotizacion = $cot['ID_Cotizacion'];
+                        break;
+                    }
                 }
             }
 
