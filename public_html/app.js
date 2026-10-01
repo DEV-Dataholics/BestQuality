@@ -10,8 +10,9 @@ document.addEventListener('alpine:init', () => {
         loginError: '',
         activePage: 'resumen',
 
-        // Sidebar Collapse
+        // Sidebar & Mobile Navigation
         isSidebarCollapsed: false,
+        mobileMenuOpen: false,
 
         // Super Captura Wizard State
         superCapturaStep: 1,
@@ -58,9 +59,6 @@ document.addEventListener('alpine:init', () => {
         historicoFacturacion: [],
         desgloseClienteUltimoMes: [],
         selectedClientForChart: '',
-
-        // Auditoria
-        migracionAuditData: [],
 
         // Detalle Factura
         selectedFactura: {},
@@ -325,6 +323,7 @@ document.addEventListener('alpine:init', () => {
 
         navigate(page) {
             this.activePage = page;
+            this.mobileMenuOpen = false;
             this.loadAllData();
             if (page === 'resumen') {
                 this.$nextTick(() => {
@@ -392,11 +391,6 @@ document.addEventListener('alpine:init', () => {
                         chartHistorico.update();
                     }
                 });
-
-            // 9. Cargar Auditoria Pre-Migracion
-            fetch('/api/migracion/audit')
-                .then(res => res.json())
-                .then(data => { this.migracionAuditData = data; });
         },
 
         updateClientChart() {
@@ -1216,7 +1210,6 @@ document.addEventListener('alpine:init', () => {
                 importar: 'Carga de Archivos e Importación',
                 reportes: 'Reportes de Cobranza',
                 super_captura: 'Modo Super Captura Wizard',
-                migracion: 'Auditoría Pre-Migración ("Facturas en el Aire")',
                 logs: 'Bitácora de Eventos y Logs del Sistema'
             }[this.activePage] || 'Portal BQS';
         },

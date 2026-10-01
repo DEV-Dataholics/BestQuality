@@ -1553,6 +1553,116 @@ class ApiController extends BaseController
         ]);
     }
 
+    public function resetTransactionalData()
+    {
+        $db = \Config\Database::connect();
+        
+        $tables = ['PAGOS', 'FACTURAS', 'BITACORA_SORTEO'];
+        $backupText = "-- BQS Transactional Tables Auto Backup before Reset\n-- Date: " . date('Y-m-d H:i:s') . "\n\n";
+        
+        foreach ($tables as $table) {
+            $query = $db->query("SELECT * FROM `$table`");
+            $rows = $query->getResultArray();
+            if (!empty($rows)) {
+                $backupText .= "-- Table $table data (" . count($rows) . " rows)\n";
+                foreach ($rows as $row) {
+                    $keys = array_map(function($k) { return "`$k`"; }, array_keys($row));
+                    $vals = array_map(function($v) use ($db) { return $db->escape($v); }, array_values($row));
+                    $backupText .= "INSERT INTO `$table` (" . implode(', ', $keys) . ") VALUES (" . implode(', ', $vals) . ");\n";
+                }
+                $backupText .= "\n";
+            }
+        }
+        
+        $backupDir = WRITEPATH . 'uploads/';
+        if (!is_dir($backupDir)) {
+            mkdir($backupDir, 0777, true);
+        }
+        $backupPath = $backupDir . 'backup_transaccional_' . date('Ymd_His') . '.sql';
+        file_put_contents($backupPath, $backupText);
+
+        $db->query("SET FOREIGN_KEY_CHECKS = 0");
+        foreach ($tables as $table) {
+            $db->query("TRUNCATE TABLE `$table`");
+        }
+        $db->query("SET FOREIGN_KEY_CHECKS = 1");
+
+        $this->recordLog('ADMIN', 'LIMPIAR_BD', "Tablas transaccionales (PAGOS, FACTURAS, BITACORA_SORTEO) restablecidas a cero. Clientes y Cotizaciones preservadas. Respaldo: " . basename($backupPath));
+
+        return $this->respond([
+            'status' => 'success',
+            'message' => 'Tablas transaccionales restablecidas a cero con éxito. Catálogos y Cotizaciones preservadas.',
+            'backup' => basename($backupPath),
+            'tables_cleared' => $tables
+        ]);
+    }
+
+    public function preloadCatalogsAndQuotes()
+    {
+        $db = \Config\Database::connect();
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+
+        $clientesCount = 0;
+        $cotizacionesCount = 0;
+
+        if (!empty($input['clientes']) && is_array($input['clientes'])) {
+            foreach ($input['clientes'] as $c) {
+                if (empty($c['ID_Cliente'])) continue;
+                $exists = $db->table('CAT_CLIENTES')->where('ID_Cliente', $c['ID_Cliente'])->countAllResults();
+                $data = [
+                    'ID_Cliente'       => $c['ID_Cliente'],
+                    'Nombre_Fiscal'    => $c['Nombre_Fiscal'] ?? $c['Nombre_Comercial'] ?? $c['ID_Cliente'],
+                    'Nombre_Comercial' => $c['Nombre_Comercial'] ?? $c['Nombre_Fiscal'] ?? $c['ID_Cliente'],
+                    'RFC'              => $c['RFC'] ?? null,
+                    'Estatus'          => $c['Estatus'] ?? 'Activo',
+                    'updated_at'       => date('Y-m-d H:i:s')
+                ];
+                if ($exists > 0) {
+                    $db->table('CAT_CLIENTES')->where('ID_Cliente', $c['ID_Cliente'])->update($data);
+                } else {
+                    $data['created_at'] = date('Y-m-d H:i:s');
+                    $db->table('CAT_CLIENTES')->insert($data);
+                }
+                $clientesCount++;
+            }
+        }
+
+        if (!empty($input['cotizaciones']) && is_array($input['cotizaciones'])) {
+            foreach ($input['cotizaciones'] as $q) {
+                if (empty($q['ID_Cotizacion'])) continue;
+                $exists = $db->table('COTIZACIONES')->where('ID_Cotizacion', $q['ID_Cotizacion'])->countAllResults();
+                $data = [
+                    'ID_Cotizacion'     => $q['ID_Cotizacion'],
+                    'ID_Cliente'        => $q['ID_Cliente'] ?? null,
+                    'PO_Referencia'     => $q['PO_Referencia'] ?? null,
+                    'Monto_Autorizado'  => $q['Monto_Autorizado'] ?? 0,
+                    'Piezas_Autorizadas'=> $q['Piezas_Autorizadas'] ?? 0,
+                    'Numero_Parte'      => $q['Numero_Parte'] ?? null,
+                    'Planta'            => $q['Planta'] ?? null,
+                    'Notas_Politicas'   => $q['Notas_Politicas'] ?? null,
+                    'Estatus'           => $q['Estatus'] ?? 'Aprobada',
+                    'updated_at'        => date('Y-m-d H:i:s')
+                ];
+                if ($exists > 0) {
+                    $db->table('COTIZACIONES')->where('ID_Cotizacion', $q['ID_Cotizacion'])->update($data);
+                } else {
+                    $data['created_at'] = date('Y-m-d H:i:s');
+                    $db->table('COTIZACIONES')->insert($data);
+                }
+                $cotizacionesCount++;
+            }
+        }
+
+        $this->recordLog('ADMIN', 'PRECARGA_DATA', "Precarga de catálogos completada. Clientes procesados: $clientesCount, Cotizaciones procesadas: $cotizacionesCount");
+
+        return $this->respond([
+            'status' => 'success',
+            'message' => "Precarga exitosa: $clientesCount clientes y $cotizacionesCount cotizaciones registradas/actualizadas.",
+            'clientes_count' => $clientesCount,
+            'cotizaciones_count' => $cotizacionesCount
+        ]);
+    }
+
     public function seedDatabase()
     {
         $db = \Config\Database::connect();
