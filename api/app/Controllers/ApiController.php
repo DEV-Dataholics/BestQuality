@@ -29,6 +29,14 @@ class ApiController extends BaseController
         if (!$db->fieldExists('CP', 'CAT_CLIENTES')) {
             $db->query("ALTER TABLE CAT_CLIENTES ADD COLUMN CP VARCHAR(10) DEFAULT NULL");
         }
+        $rfcCol = $db->query("SHOW COLUMNS FROM CAT_CLIENTES LIKE 'RFC'")->getRowArray();
+        if ($rfcCol && strtoupper($rfcCol['Null'] ?? '') === 'NO') {
+            $db->query("ALTER TABLE CAT_CLIENTES MODIFY COLUMN RFC VARCHAR(25) DEFAULT NULL");
+        }
+        $indexes = $db->query("SHOW INDEX FROM CAT_CLIENTES WHERE Key_name = 'idx_rfc'")->getResultArray();
+        if (!empty($indexes)) {
+            $db->query("ALTER TABLE CAT_CLIENTES DROP INDEX idx_rfc");
+        }
         // Auto-alter COTIZACIONES columns
         if (!$db->fieldExists('Numero_Parte', 'COTIZACIONES')) {
             $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Numero_Parte VARCHAR(100) DEFAULT NULL");
@@ -41,6 +49,12 @@ class ApiController extends BaseController
         }
         if (!$db->fieldExists('Numero_Remision', 'COTIZACIONES')) {
             $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Numero_Remision VARCHAR(30) DEFAULT NULL");
+        }
+        if (!$db->fieldExists('Moneda', 'COTIZACIONES')) {
+            $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Moneda VARCHAR(20) DEFAULT 'Peso Mexicano'");
+        }
+        if (!$db->fieldExists('created_at', 'COTIZACIONES')) {
+            $db->query("ALTER TABLE COTIZACIONES ADD COLUMN created_at DATE DEFAULT NULL");
         }
         if (!$db->fieldExists('ID_Cotizacion', 'FACTURAS')) {
             $db->query("ALTER TABLE FACTURAS ADD COLUMN ID_Cotizacion VARCHAR(20) DEFAULT NULL");
@@ -1614,13 +1628,11 @@ class ApiController extends BaseController
                     'Nombre_Fiscal'    => $c['Nombre_Fiscal'] ?? $c['Nombre_Comercial'] ?? $c['ID_Cliente'],
                     'Nombre_Comercial' => $c['Nombre_Comercial'] ?? $c['Nombre_Fiscal'] ?? $c['ID_Cliente'],
                     'RFC'              => $c['RFC'] ?? null,
-                    'Estatus'          => $c['Estatus'] ?? 'Activo',
-                    'updated_at'       => date('Y-m-d H:i:s')
+                    'Estatus'          => $c['Estatus'] ?? 'Activo'
                 ];
                 if ($exists > 0) {
                     $db->table('CAT_CLIENTES')->where('ID_Cliente', $c['ID_Cliente'])->update($data);
                 } else {
-                    $data['created_at'] = date('Y-m-d H:i:s');
                     $db->table('CAT_CLIENTES')->insert($data);
                 }
                 $clientesCount++;
@@ -1640,13 +1652,15 @@ class ApiController extends BaseController
                     'Numero_Parte'      => $q['Numero_Parte'] ?? null,
                     'Planta'            => $q['Planta'] ?? null,
                     'Notas_Politicas'   => $q['Notas_Politicas'] ?? null,
-                    'Estatus'           => $q['Estatus'] ?? 'Aprobada',
-                    'updated_at'        => date('Y-m-d H:i:s')
+                    'Moneda'            => $q['Moneda'] ?? 'Dolar americano',
+                    'Estatus'           => $q['Estatus'] ?? 'Aprobada'
                 ];
+                if (!empty($q['created_at'])) {
+                    $data['created_at'] = $q['created_at'];
+                }
                 if ($exists > 0) {
                     $db->table('COTIZACIONES')->where('ID_Cotizacion', $q['ID_Cotizacion'])->update($data);
                 } else {
-                    $data['created_at'] = date('Y-m-d H:i:s');
                     $db->table('COTIZACIONES')->insert($data);
                 }
                 $cotizacionesCount++;
