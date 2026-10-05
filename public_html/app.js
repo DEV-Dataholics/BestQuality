@@ -1235,6 +1235,17 @@ document.addEventListener('alpine:init', () => {
             }).format(value) + ' USD';
         },
 
+        formatQuoteAmount(value, currency) {
+            if (!currency || currency === 'null' || currency === 'N/A') {
+                const num = parseFloat(value) || 0;
+                return '$ ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            if (currency === 'USD' || currency === 'Dolar americano') {
+                return this.formatUSD(value || 0);
+            }
+            return this.formatCurrency(value || 0);
+        },
+
         getParetoData() {
             // Filter out fully paid invoices, group and sum overdue/vigente debt per client
             const debtByClient = {};

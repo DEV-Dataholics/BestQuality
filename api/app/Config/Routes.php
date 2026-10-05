@@ -67,6 +67,7 @@ $routes->get('plantas', 'ApiController::getPlantas');
 $routes->post('plantas', 'ApiController::createPlanta');
 $routes->get('admin/logs/audit', 'ApiController::getAuditLogs');
 $routes->get('admin/logs/system', 'ApiController::getSystemLogs');
+$routes->post('admin/update-cotizaciones-monedas', 'ApiController::updateCotizacionesMonedas');
 
 
 // ------------------------------------------------------------------------
@@ -130,4 +131,5 @@ $routes->group('api', function($routes) {
     $routes->post('facturas/upload-xml', 'ApiController::uploadInvoiceXML');
     $routes->get('admin/logs/audit', 'ApiController::getAuditLogs');
     $routes->get('admin/logs/system', 'ApiController::getSystemLogs');
+    $routes->post('admin/update-cotizaciones-monedas', 'ApiController::updateCotizacionesMonedas');
 });

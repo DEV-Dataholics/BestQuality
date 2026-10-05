@@ -51,7 +51,12 @@ class ApiController extends BaseController
             $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Numero_Remision VARCHAR(30) DEFAULT NULL");
         }
         if (!$db->fieldExists('Moneda', 'COTIZACIONES')) {
-            $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Moneda VARCHAR(20) DEFAULT 'Peso Mexicano'");
+            $db->query("ALTER TABLE COTIZACIONES ADD COLUMN Moneda VARCHAR(20) DEFAULT NULL");
+        } else {
+            $monedaCol = $db->query("SHOW COLUMNS FROM COTIZACIONES LIKE 'Moneda'")->getRowArray();
+            if ($monedaCol && ($monedaCol['Default'] !== null || strtoupper($monedaCol['Null'] ?? '') === 'NO')) {
+                $db->query("ALTER TABLE COTIZACIONES MODIFY COLUMN Moneda VARCHAR(20) DEFAULT NULL");
+            }
         }
         if (!$db->fieldExists('created_at', 'COTIZACIONES')) {
             $db->query("ALTER TABLE COTIZACIONES ADD COLUMN created_at DATE DEFAULT NULL");
@@ -1850,6 +1855,59 @@ class ApiController extends BaseController
         } catch (\Exception $e) {
             return $this->fail('Error al procesar el XML de cliente: ' . $e->getMessage());
         }
+    }
+
+    public function updateCotizacionesMonedas()
+    {
+        $json = $this->request->getJSON(true);
+        if (!$json || !is_array($json)) {
+            $json = $this->request->getPost('updates');
+            if (is_string($json)) {
+                $json = json_decode($json, true);
+            }
+        }
+
+        if (empty($json) || !is_array($json)) {
+            return $this->fail('Se requiere una lista de cotizaciones a actualizar');
+        }
+
+        $db = \Config\Database::connect();
+        $updatedCount = 0;
+
+        $db->transStart();
+        foreach ($json as $item) {
+            $id = $item['ID_Cotizacion'] ?? null;
+            if (!$id) continue;
+
+            $data = [];
+            if (array_key_exists('Moneda', $item)) {
+                $data['Moneda'] = $item['Moneda']; // 'USD', 'MXN', or null
+            }
+            if (array_key_exists('Monto_Autorizado', $item)) {
+                $data['Monto_Autorizado'] = $item['Monto_Autorizado'];
+            }
+            if (array_key_exists('Notas_Politicas', $item)) {
+                $data['Notas_Politicas'] = $item['Notas_Politicas'];
+            }
+
+            if (!empty($data)) {
+                $db->table('COTIZACIONES')->where('ID_Cotizacion', $id)->update($data);
+                $updatedCount++;
+            }
+        }
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->fail('Error en la transacción de actualización de monedas');
+        }
+
+        $this->recordLog('COTIZACIONES', 'BATCH_UPDATE_MONEDA', "Actualización masiva de monedas para {$updatedCount} cotizaciones");
+
+        return $this->respond([
+            'status' => 'success',
+            'updated' => $updatedCount,
+            'message' => "Se actualizaron {$updatedCount} cotizaciones con su moneda y monto correspondiente."
+        ]);
     }
 }
 

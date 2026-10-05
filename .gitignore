@@ -1,4 +1,7 @@
 # Ignorar archivo de credenciales locales
 .env
-*.zip
-*.sql
+__pycache__/
+*.pyc
+api/writable/
+
+
