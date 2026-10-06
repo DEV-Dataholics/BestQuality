@@ -698,14 +698,21 @@
 
                   <div class="pt-4 border-t border-dashed mt-4 space-y-3">
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">O Crear una Nueva Cotización</span>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
                         <label class="text-xs font-semibold text-slate-600">ID Cotización (Autogenerado)</label>
                         <input type="text" x-model="superCapturaForm.ID_Cotizacion" disabled class="block w-full rounded-xl border border-slate-100 bg-slate-50 py-2.5 px-3 text-xs mt-1 font-mono font-bold text-slate-500">
                       </div>
                       <div>
                         <label class="text-xs font-semibold text-slate-600">Monto Autorizado</label>
-                        <input type="number" step="0.01" x-model="superCapturaForm.Monto_Autorizado" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 font-mono">
+                        <input type="number" step="0.01" x-model="superCapturaForm.Monto_Autorizado" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 font-mono" placeholder="0.00">
+                      </div>
+                      <div>
+                        <label class="text-xs font-semibold text-slate-600">Tipo de Moneda</label>
+                        <select x-model="superCapturaForm.Moneda" class="block w-full rounded-xl border border-slate-200 py-2.5 px-3 text-xs mt-1 focus:outline-none bg-white font-medium text-slate-800">
+                          <option value="USD">USD ($ USD)</option>
+                          <option value="MXN">MXN ($ MXN)</option>
+                        </select>
                       </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
@@ -2067,9 +2074,18 @@
           <label class="block text-sm font-semibold text-slate-700">Referencia de Orden de Compra (PO)</label>
           <input type="text" x-model="cotizacionForm.PO_Referencia" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none">
         </div>
-        <div>
-          <label class="block text-sm font-semibold text-slate-700">Monto Autorizado</label>
-          <input type="number" step="0.01" x-model="cotizacionForm.Monto_Autorizado" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700">Monto Autorizado</label>
+            <input type="number" step="0.01" x-model="cotizacionForm.Monto_Autorizado" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 font-mono focus:outline-none" placeholder="0.00">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-slate-700">Tipo de Moneda</label>
+            <select x-model="cotizacionForm.Moneda" class="block w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm mt-1 focus:outline-none bg-white font-medium text-slate-800">
+              <option value="USD">USD - Dólar Americano ($ USD)</option>
+              <option value="MXN">MXN - Peso Mexicano ($ MXN)</option>
+            </select>
+          </div>
         </div>
         <div>
           <label class="block text-sm font-semibold text-slate-700">Piezas Autorizadas</label>
@@ -2545,6 +2561,6 @@
   </div>
 
   <!-- LÓGICA ALPINE.JS -->
-  <script src="app.js?v=202610051255"></script>
+  <script src="app.js?v=202610061315"></script>
 </body>
 </html>

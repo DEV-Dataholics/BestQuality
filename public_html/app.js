@@ -26,6 +26,7 @@ document.addEventListener('alpine:init', () => {
             ID_Cotizacion: '',
             PO_Referencia: '',
             Monto_Autorizado: 0,
+            Moneda: 'USD',
             Piezas_Autorizadas: 0,
             Planta: '',
             Planta_Nueva: '',
@@ -86,7 +87,7 @@ document.addEventListener('alpine:init', () => {
         bulkStatusValue: 'Cancelada',
 
         clientForm: { ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Estatus: 'Activo', Direccion: '', CP: '' },
-        cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '', Numero_Parte: '', Planta: '', Notas_Politicas: '', Numero_Remision: '' },
+        cotizacionForm: { ID_Cotizacion: '', ID_Cliente: '', PO_Referencia: '', Monto_Autorizado: 0, Moneda: 'USD', Piezas_Autorizadas: 0, Estatus: 'Pendiente', Evidencia: '', Numero_Parte: '', Planta: '', Notas_Politicas: '', Numero_Remision: '' },
         devengadoForm: { ID_Captura: '', Fecha: '', ID_Cotizacion: '', Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0, Estatus_Facturacion: 'Pendiente' },
         facturaForm: { Folio_Factura: '', cfdiUUID: '', ID_Cliente: '', Fecha_Emision: '', Monto_Subtotal: 0, Monto_Total: 0, Moneda: 'Peso Mexicano', Fecha_Vencimiento: '', Estatus_Pago: 'Vigente' },
         pagoForm: { ID_Pago: '', Folio_Factura: '', Fecha_Pago: '', Monto_Pagado: 0, Referencia: '' },
@@ -597,6 +598,7 @@ document.addEventListener('alpine:init', () => {
                 form.append('ID_Cliente', this.superCapturaForm.ID_Cliente);
                 form.append('PO_Referencia', this.superCapturaForm.PO_Referencia || '');
                 form.append('Monto_Autorizado', this.superCapturaForm.Monto_Autorizado);
+                form.append('Moneda', this.superCapturaForm.Moneda || 'USD');
                 form.append('Piezas_Autorizadas', this.superCapturaForm.Piezas_Autorizadas || 0);
                 form.append('Numero_Parte', this.superCapturaForm.Numero_Parte || '');
                 
@@ -665,7 +667,7 @@ document.addEventListener('alpine:init', () => {
                 // Reset form
                 this.superCapturaForm = {
                     ID_Cliente: '', Nombre_Fiscal: '', Nombre_Comercial: '', RFC: '', Direccion: '', CP: '',
-                    ID_Cotizacion: '', PO_Referencia: '', Monto_Autorizado: 0, Piezas_Autorizadas: 0,
+                    ID_Cotizacion: '', PO_Referencia: '', Monto_Autorizado: 0, Moneda: 'USD', Piezas_Autorizadas: 0,
                     ID_Captura: '', Fecha: new Date().toISOString().split('T')[0], Horas_Trabajadas: 0, Piezas_Sorteadas: 0, Monto_Devengado: 0,
                     Planta: '', Planta_Nueva: '', Numero_Parte: '', Notas_Politicas: ''
                 };
@@ -796,6 +798,7 @@ document.addEventListener('alpine:init', () => {
                     ID_Cliente: '', 
                     PO_Referencia: '', 
                     Monto_Autorizado: 0, 
+                    Moneda: 'USD',
                     Piezas_Autorizadas: 0, 
                     Estatus: 'Pendiente', 
                     Evidencia: '', 
@@ -821,7 +824,7 @@ document.addEventListener('alpine:init', () => {
             if (type === 'cliente') {
                 this.clientForm = { ...item };
             } else if (type === 'cotizacion') {
-                this.cotizacionForm = { ...item };
+                this.cotizacionForm = { ...item, Moneda: item.Moneda || 'USD' };
             } else if (type === 'devengado') {
                 this.devengadoForm = { ...item };
             } else if (type === 'factura') {
