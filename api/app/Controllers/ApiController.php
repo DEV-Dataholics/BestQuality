@@ -75,6 +75,9 @@ class ApiController extends BaseController
             }
         }
 
+        // Auto-clean ghost soft-deleted test quote COT-0363
+        $db->query("DELETE FROM COTIZACIONES WHERE ID_Cotizacion = 'COT-0363' AND deleted_at IS NOT NULL");
+
         // Create CAT_CLIENTE_PLANTAS table
         $db->query("CREATE TABLE IF NOT EXISTS `CAT_CLIENTE_PLANTAS` (
             `ID_Planta` INT AUTO_INCREMENT PRIMARY KEY,
@@ -518,8 +521,8 @@ class ApiController extends BaseController
     {
         $db = \Config\Database::connect();
         $builder = $db->table('COTIZACIONES c');
-        $builder->select('c.*, cl.Nombre_Comercial AS Cliente');
-        $builder->join('CAT_CLIENTES cl', 'c.ID_Cliente = cl.ID_Cliente');
+        $builder->select('c.*, COALESCE(cl.Nombre_Comercial, c.ID_Cliente, "Sin Cliente") AS Cliente');
+        $builder->join('CAT_CLIENTES cl', 'c.ID_Cliente = cl.ID_Cliente', 'left');
         $builder->where('c.deleted_at IS NULL');
         return $this->respond($builder->get()->getResultArray());
     }
@@ -1041,28 +1044,42 @@ class ApiController extends BaseController
 
     public function createCotizacion()
     {
+        $db = \Config\Database::connect();
         $model = new CotizacionModel();
         $data = $this->request->getPost();
         
+        // 1. Si no viene folio, calcular el máximo físico absoluto en la tabla
         if (empty($data['ID_Cotizacion'])) {
-            $maxNum = 0;
-            $quotes = $model->select('ID_Cotizacion')->findAll();
-            foreach ($quotes as $q) {
-                if (preg_match('/COT-(\d+)/', $q['ID_Cotizacion'], $matches)) {
-                    $num = (int)$matches[1];
-                    if ($num > $maxNum) {
-                        $maxNum = $num;
-                    }
-                }
-            }
-            $data['ID_Cotizacion'] = 'COT-' . str_pad($maxNum + 1, 4, '0', STR_PAD_LEFT);
+            $maxRow = $db->query("SELECT MAX(CAST(SUBSTRING(ID_Cotizacion, 5) AS UNSIGNED)) as max_num FROM COTIZACIONES WHERE ID_Cotizacion REGEXP '^COT-[0-9]+'")->getRowArray();
+            $nextNum = ((int)($maxRow['max_num'] ?? 0)) + 1;
+            $data['ID_Cotizacion'] = 'COT-' . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
         }
 
+        // 2. Manejo de Remisión si viene Aprobada
         if (isset($data['Estatus']) && $data['Estatus'] === 'Aprobada') {
             if (empty($data['Numero_Remision'])) {
                 $data['Numero_Remision'] = $this->generateNextRemisionNumber();
             }
         }
+
+        // 3. Verificar si el ID_Cotizacion ya existe físicamente en la tabla (incluyendo eliminados)
+        $existing = $db->table('COTIZACIONES')->where('ID_Cotizacion', $data['ID_Cotizacion'])->get()->getRowArray();
+        
+        if ($existing) {
+            if (!empty($existing['deleted_at'])) {
+                // Caso A: Registro previamente eliminado por soft-delete -> Reutilizar y reactivar limpiando deleted_at
+                $data['deleted_at'] = null;
+                $db->table('COTIZACIONES')->where('ID_Cotizacion', $data['ID_Cotizacion'])->update($data);
+                $this->recordLog('COTIZACIONES', 'CREAR_REUSE', "Cotización creada reutilizando folio previo eliminado: {$data['ID_Cotizacion']}", $data);
+                return $this->respondCreated($data);
+            } else {
+                // Caso B: Colisión con registro activo -> Auto-asignar el siguiente folio libre disponible
+                $maxRow = $db->query("SELECT MAX(CAST(SUBSTRING(ID_Cotizacion, 5) AS UNSIGNED)) as max_num FROM COTIZACIONES WHERE ID_Cotizacion REGEXP '^COT-[0-9]+'")->getRowArray();
+                $nextNum = ((int)($maxRow['max_num'] ?? 0)) + 1;
+                $data['ID_Cotizacion'] = 'COT-' . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+            }
+        }
+
         if ($model->insert($data)) {
             $this->recordLog('COTIZACIONES', 'CREAR', "Cotización creada: {$data['ID_Cotizacion']} para {$data['ID_Cliente']} por monto $" . ($data['Monto_Autorizado'] ?? '0'), $data);
             return $this->respondCreated($data);
